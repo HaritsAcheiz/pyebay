@@ -4,7 +4,7 @@ from selectolax.parser import HTMLParser
 from dataclasses import dataclass
 import pandas as pd
 import re
-from dotenv import load_dotenv
+
 
 @dataclass
 class EbayScraper:
@@ -461,16 +461,16 @@ class EbayScraper:
         url = f'https://vi.vipr.ebaydesc.com/ws/eBayISAPI.dll?ViewItemDescV4&item={item_id}'
         response = self.fetch(url)
         tree = HTMLParser(response.text)
-        body = tree.css_first('body').html
-        # body = tree.css_first('body').text()
+        # body = tree.css_first('body').html
+        body = tree.css_first('body').text()
         return body
 
-    def main(self):
-        # target = 'https://www.ebay.com/itm/225625920147'
-        target = 'https://www.ebay.com/itm/394768568591'
+    def run(self):
+        target = 'https://www.ebay.com/itm/225625920147'
+        # target = 'https://www.ebay.com/itm/394768568591'
         response = self.fetch(target)
         data = self.get_data(response)
 
 if __name__ == '__main__':
     s = EbayScraper()
-    s.main()
+    s.run()
