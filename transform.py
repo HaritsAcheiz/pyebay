@@ -1,12 +1,13 @@
+import json
+
 from dotenv import load_dotenv
 import openai
 import os
 from dataclasses import dataclass
 import pandas as pd
-from langchain import PromptTemplate
-from langchain.llms import OpenAI
-# from langchain.prompts import ChatPromptTemplate
-# from langchain.chat_models import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
+from langchain.chat_models import ChatOpenAI
+from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 from selectolax.parser import HTMLParser
 
 load_dotenv()
@@ -29,33 +30,34 @@ class TransformEbay:
         if pd.isna(description):
             result = description
         else:
-            # llm = OpenAI(model_name="text-davinci-003", temperature=0)
-            llm = OpenAI(model_name="gpt-3.5-turbo", temperature=0)
-            # llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
-            template = """
-            You are required to generate new product description in form of only 1 paragraph (250 words maximum) and add bullet points that describe specification of product below the paragraph after write "Specification:".
-            If the description contain more than 1 variant you should add more paragraph (250 words maximum for each paragraph) and bullet points to cover the other variant description.
-            Description should mention "Ride On" phrase at least 1 time and the first "Ride On" phrase should be inside the article tag that link to https://teesparty.myshopify.com/ with article tag.
-            You also need to remove any references to ebay or returns or things like that in the description or mentioning of not to leave bad feedback.
-            The answer should be inside body tag of html format.
-            All of the instruction should based on following title
+            # human_template = """
+            # You are required to generate new product description in form of html with single paragraph (250 words maximum) and add bullet points that describe specification of product below the paragraph after write "Specification:".
+            # The above-mentioned instructions are repeated according to the number of variants detected in description.
+            # Description should mention "Ride On" phrase at least 1 time and the first "Ride On" phrase should be inside the article tag that link to https://teesparty.myshopify.com/ with article tag.
+            # You also need to remove any references to ebay or returns or things like that in the description or mentioning of not to leave bad feedback.
+            # All of the instruction should executed based on following title
+            # {title}
+            # and
+            # following current description
+            # {current_description}
+            # """
+
+            human_template = """
+            You are required to generate a new product description. The description should be in the form of a single paragraph (maximum 250 words) and merge <a href="https://teesparty.myshopify.com/">Ride On</a> element with paragraph. The description should highlight the features and specifications by using bullet point make sure it covered all informatian of each variant. Ensure that the generated text is in HTML format and follows the provided title and description.
+            Title:
             {title}
-            and
-            following current description
+            Description:
             {current_description}
-            Answer:
             """
 
-            prompt_template = PromptTemplate(
-                input_variables=["title", "current_description"],
-                template=template
-                # messages=template
-            )
+            human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
+            chat_prompt_template = ChatPromptTemplate(messages=[human_message_prompt],
+                                                      input_variables=['title', 'current_description'])
 
-            prompt = prompt_template.format(title=title, current_description=description)
+            chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.1)
 
-            result = llm(prompt)
-
+            output = chat(chat_prompt_template.format_prompt(title=title, current_description=description).to_messages())
+            result = output.content
         return result
 
     def transform_description(self, df):
