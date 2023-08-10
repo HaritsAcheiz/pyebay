@@ -466,8 +466,8 @@ class EbayScraper:
         return body
 
     def run(self):
-        target = 'https://www.ebay.com/itm/225625920147'
-        # target = 'https://www.ebay.com/itm/394768568591'
+        # target = 'https://www.ebay.com/itm/225625920147'
+        target = 'https://www.ebay.com/itm/394768568591'
         response = self.fetch(target)
         data = self.get_data(response)
 
