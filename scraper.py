@@ -30,9 +30,15 @@ class EbayScraper:
         try:
             select_box = left_panel.css('span.x-msku__select-box-wrapper > select.x-msku__select-box')
         except AttributeError:
+            select_box = None
             print("Product doesn't have variant")
 
         if left_panel:
+            self.handle = more_desc.css_first(
+                'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > span.ux-textspans--BOLD').text(
+                strip=True)
+            self.title = left_panel.css_first('h1.x-item-title__mainTitle').text(strip=True)
+            self.description = self.get_desc(self.handle)
             if select_box:
                 for i, variant in enumerate(select_box):
                     options = variant.css('option')
@@ -46,11 +52,6 @@ class EbayScraper:
                         if j == 0:
                             continue
                         else:
-                            self.handle = more_desc.css_first(
-                                'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > span.ux-textspans--BOLD').text(
-                                strip=True)
-                            self.title = left_panel.css_first('h1.x-item-title__mainTitle').text(strip=True)
-                            self.description = self.get_desc(self.handle)
                             for item in item_specs:
                                 cols = item.css('div.ux-layout-section-evo__col')
                                 for col in cols:
@@ -63,6 +64,8 @@ class EbayScraper:
                                 re.findall(r"\d+\.\d+", left_panel.css_first('div.x-price-primary').text(strip=True))[0])
                             self.condition = left_panel.css_first('span.ux-icon-text__text > span.clipped').text(strip=True)
                             self.img_src = picture_panel.css_first('img.ux-image-magnify__image--original').attributes.get('src')
+                            if self.img_src is None:
+                                self.img_src = picture_panel.css_first('img.img-scale-down').attributes.get('src')
                             if i == 0:
                                 self.option1_value = option.text()
                                 option_value = option.attributes.get('value')
@@ -111,7 +114,6 @@ class EbayScraper:
                                 df['Variant Taxable'] = True
                                 df['Variant Barcode'] = ''
                                 df['Image Src'] = self.img_src
-                                # df['Image Src'] = self.get_main_product_images(tree)
                                 df['Image Position'] = 1
                                 df['Image Alt Text'] = ''
                                 df['Gift Card'] = False
@@ -166,7 +168,6 @@ class EbayScraper:
                                     df['Variant Taxable'] = ''
                                     df['Variant Barcode'] = ''
                                     df['Image Src'] = image
-                                    # df['Image Src'] = self.get_main_product_images(tree)
                                     df['Image Position'] = ''
                                     df['Image Alt Text'] = ''
                                     df['Gift Card'] = ''
@@ -257,12 +258,6 @@ class EbayScraper:
                                 df['Status'] = 'active'
                                 collected_df = pd.concat([collected_df, df.copy()], ignore_index=True)
             else:
-                self.handle = more_desc.css_first(
-                    'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > span.ux-textspans--BOLD').text(
-                    strip=True)
-                self.title = left_panel.css_first('h1.x-item-title__mainTitle').text(strip=True)
-                self.description = self.get_desc(self.handle)
-                # div.ux-layout-section-evo__item.ux-layout-section-evo__item--table-view > div.ux-layout-section-evo__row
                 for item in item_specs:
                     cols = item.css('div.ux-layout-section-evo__col')
                     for col in cols:
@@ -275,6 +270,8 @@ class EbayScraper:
                     re.findall(r"\d+\.\d+", left_panel.css_first('div.x-price-primary').text(strip=True))[0])
                 self.condition = left_panel.css_first('span.ux-icon-text__text > span.clipped').text(strip=True)
                 self.img_src = picture_panel.css_first('img.ux-image-magnify__image--original').attributes.get('src')
+                if self.img_src is None:
+                    self.img_src = picture_panel.css_first('img.img-scale-down').attributes.get('src')
                 handle = []
                 handle.append(self.handle)
                 df = pd.DataFrame(data=handle, columns=['Handle'])
@@ -315,7 +312,6 @@ class EbayScraper:
                 df['Variant Taxable'] = True
                 df['Variant Barcode'] = ''
                 df['Image Src'] = self.img_src
-                # df['Image Src'] = self.get_main_product_images(tree)
                 df['Image Position'] = 1
                 df['Image Alt Text'] = ''
                 df['Gift Card'] = False
@@ -370,7 +366,6 @@ class EbayScraper:
                     df['Variant Taxable'] = ''
                     df['Variant Barcode'] = ''
                     df['Image Src'] = image
-                    # df['Image Src'] = self.get_main_product_images(tree)
                     df['Image Position'] = ''
                     df['Image Alt Text'] = ''
                     df['Gift Card'] = ''
@@ -461,15 +456,12 @@ class EbayScraper:
         url = f'https://vi.vipr.ebaydesc.com/ws/eBayISAPI.dll?ViewItemDescV4&item={item_id}'
         response = self.fetch(url)
         tree = HTMLParser(response.text)
-        # body = tree.css_first('body').html
         body = tree.css_first('body').text()
         return body
 
-    def run(self):
-        # target = 'https://www.ebay.com/itm/225625920147'
-        target = 'https://www.ebay.com/itm/394768568591'
-        response = self.fetch(target)
-        data = self.get_data(response)
+    def run(self, url):
+        response = self.fetch(url)
+        self.get_data(response)
 
 if __name__ == '__main__':
     s = EbayScraper()

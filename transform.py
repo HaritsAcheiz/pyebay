@@ -1,5 +1,3 @@
-import json
-
 from dotenv import load_dotenv
 import openai
 import os
@@ -7,7 +5,6 @@ from dataclasses import dataclass
 import pandas as pd
 from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from langchain.chat_models import ChatOpenAI
-from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 from selectolax.parser import HTMLParser
 
 load_dotenv()
@@ -30,20 +27,12 @@ class TransformEbay:
         if pd.isna(description):
             result = description
         else:
-            # human_template = """
-            # You are required to generate new product description in form of html with single paragraph (250 words maximum) and add bullet points that describe specification of product below the paragraph after write "Specification:".
-            # The above-mentioned instructions are repeated according to the number of variants detected in description.
-            # Description should mention "Ride On" phrase at least 1 time and the first "Ride On" phrase should be inside the article tag that link to https://teesparty.myshopify.com/ with article tag.
-            # You also need to remove any references to ebay or returns or things like that in the description or mentioning of not to leave bad feedback.
-            # All of the instruction should executed based on following title
-            # {title}
-            # and
-            # following current description
-            # {current_description}
-            # """
-
             human_template = """
-            You are required to generate a new product description. The description should be in the form of a single paragraph (maximum 250 words) and merge <a href="https://teesparty.myshopify.com/">Ride On</a> element with paragraph. The description should highlight the features and specifications by using bullet point make sure it covered all informatian of each variant. Ensure that the generated text is in HTML format and follows the provided title and description.
+            You are required to modify the description. The description constructed by single paragraph (maximum 250 words) and should has "Ride On" phrase at least 1 if there are nothing just insert it as part of paragraph and make it looks natural.
+            Next step You have to make the first "Ride On" phrase linked to https://teesparty.myshopify.com/ with article tag for each variant.
+            Then You need to create bullet point of features and specifications for each variant below each paragraph.
+            You also need to remove any references to ebay or returns or things like that in the description or mentioning of not to leave bad feedback.
+            Ensure that the result is in body element of HTML format and follows the provided title and description.
             Title:
             {title}
             Description:
@@ -65,7 +54,6 @@ class TransformEbay:
         df['Body (HTML)'] = df.apply(lambda x: self.openai_edit(x['Title'], x['text_desc']), axis=1)
         df.drop(columns='text_desc', inplace=True)
         df.to_csv('openai_result.csv', index=False)
-        print(df)
 
     def run(self):
         df = pd.read_csv('result.csv')
