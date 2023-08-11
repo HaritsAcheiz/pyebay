@@ -1,4 +1,6 @@
 import json
+import os.path
+
 import httpx
 from selectolax.parser import HTMLParser
 from dataclasses import dataclass
@@ -68,11 +70,11 @@ class EbayScraper:
                                 self.img_src = picture_panel.css_first('img.img-scale-down').attributes.get('src')
                             if i == 0:
                                 self.option1_value = option.text()
-                                option_value = option.attributes.get('value')
                             elif i == 1:
                                 self.option2_value = option.text()
                             elif i == 2:
                                 self.option3_value = option.text()
+                            option_value = option.attributes.get('value')
                             handle = []
                             handle.append(self.handle)
                             if i == 0 and j == 1:
@@ -132,7 +134,10 @@ class EbayScraper:
                                 df['Google Shopping / Custom Label 2'] = ''
                                 df['Google Shopping / Custom Label 3'] = ''
                                 df['Google Shopping / Custom Label 4'] = ''
-                                df['Variant Image'] = self.get_variant_image(tree, option_value=option_value)
+                                try:
+                                    df['Variant Image'] = self.get_variant_image(tree, option_value=option_value)
+                                except:
+                                    df['Variant Image'] = ''
                                 df['Variant Weight Unit'] = 'kg'
                                 df['Variant Tax Code'] = ''
                                 df['Cost per item'] = ''
@@ -249,7 +254,10 @@ class EbayScraper:
                                 df['Google Shopping / Custom Label 2'] = ''
                                 df['Google Shopping / Custom Label 3'] = ''
                                 df['Google Shopping / Custom Label 4'] = ''
-                                df['Variant Image'] = self.get_variant_image(tree,option_value=option_value)
+                                try:
+                                    df['Variant Image'] = self.get_variant_image(tree, option_value=option_value)
+                                except:
+                                    df['Variant Image'] = ''
                                 df['Variant Weight Unit'] = 'kg'
                                 df['Variant Tax Code'] = ''
                                 df['Cost per item'] = ''
@@ -392,8 +400,10 @@ class EbayScraper:
                     df['Compare At Price / International'] = ''
                     df['Status'] = ''
                     collected_df = pd.concat([collected_df, df.copy()], ignore_index=True)
-
-            collected_df.to_csv('result.csv', index=False)
+            if os.path.exists('result.csv'):
+                collected_df.to_csv('result.csv', index=False, mode='a', header=False)
+            else:
+                collected_df.to_csv('result.csv', index=False)
             print('Product Scraped')
 
         else:
@@ -427,6 +437,7 @@ class EbayScraper:
         if json_data:
             json_str = json_data.group()
             json_obj = json.loads(json_str)
+        print(json_obj)
 
         pic_index = json_obj['w'][0][2]['model']['menuItemPictureIndexMap'][str(option_value)]
         image_element = tree.css_first(f'div.ux-image-carousel.img-transition-medium > div[data-idx="{str(pic_index[0])}"]')
@@ -456,13 +467,24 @@ class EbayScraper:
         url = f'https://vi.vipr.ebaydesc.com/ws/eBayISAPI.dll?ViewItemDescV4&item={item_id}'
         response = self.fetch(url)
         tree = HTMLParser(response.text)
-        body = tree.css_first('body').text()
+        body=''
+        if len(tree.css_first('body').text()) <= 10000:
+            body = tree.css_first('body').text()
+        else:
+            div_elements = tree.css('div')
+            for element in div_elements[::-1]:
+                if ('description' in element.text(strip=True).lower()) or (self.title.lower() in element.text(strip=True).lower()):
+                    body = element.text(strip=True)
+                    break
+                else:
+                    continue
         return body
 
-    def run(self, url):
-        response = self.fetch(url)
-        self.get_data(response)
+    def run(self, urls):
+        responses = [self.fetch(url) for url in urls]
+        datas = [self.get_data(response) for response in responses]
 
 if __name__ == '__main__':
+    urls = ['https://www.ebay.com/itm/126042540408', 'https://www.ebay.com/itm/385740921094', 'https://www.ebay.com/itm/385717993904']
     s = EbayScraper()
-    s.run()
+    s.run(urls)
