@@ -10,6 +10,12 @@ import re
 
 @dataclass
 class EbayScraper:
+    option1_name: str = ''
+    option2_name: str = ''
+    option3_name: str = ''
+    option1_value: str = ''
+    option2_value: str = ''
+    option3_value: str = ''
 
     def fetch(self, url):
         headers = {
@@ -44,12 +50,15 @@ class EbayScraper:
             if select_box:
                 for i, variant in enumerate(select_box):
                     options = variant.css('option')
-                    if i == 0:
-                        self.option1_name = variant.css_first('select').attributes.get('selectboxlabel')
-                    elif i == 1:
-                        self.option2_name = variant.css_first('select').attributes.get('selectboxlabel')
-                    elif i == 2:
-                        self.option3_name = variant.css_first('select').attributes.get('selectboxlabel')
+                    if len(select_box) == 1:
+                        self.option1_name = select_box[0].attributes.get('selectboxlabel')
+                    elif len(select_box) == 2:
+                        self.option1_name = select_box[0].attributes.get('selectboxlabel')
+                        self.option2_name = select_box[1].attributes.get('selectboxlabel')
+                    elif len(select_box) == 3:
+                        self.option1_name = select_box[0].attributes.get('selectboxlabel')
+                        self.option2_name = select_box[1].attributes.get('selectboxlabel')
+                        self.option3_name = select_box[2].attributes.get('selectboxlabel')
                     for j, option in enumerate(options):
                         if j == 0:
                             continue
@@ -89,21 +98,26 @@ class EbayScraper:
                                 try:
                                     df['Option1 Name'] = self.option1_name
                                     df['Option1 Value'] = self.option1_value
-                                except AttributeError:
+                                except AttributeError as e:
+                                    print(e)
                                     df['Option1 Name'] = ''
                                     df['Option1 Value'] = ''
                                 try:
                                     df['Option2 Name'] = self.option2_name
                                     df['Option2 Value'] = self.option2_value
-                                except AttributeError:
+                                except AttributeError as e:
+                                    print(e)
                                     df['Option2 Name'] = ''
                                     df['Option2 Value'] = ''
                                 try:
                                     df['Option3 Name'] = self.option3_name
                                     df['Option3 Value'] = self.option3_value
-                                except AttributeError:
+                                except AttributeError as e:
+                                    print(e)
                                     df['Option3 Name'] = ''
                                     df['Option3 Value'] = ''
+                                print(self.option1_name, self.option2_name, self.option3_name)
+                                print(f'opt1:{self.option1_value}, opt2:{self.option2_value}, opt3:{self.option3_value}')
                                 df['Variant SKU'] = handle[0]+self.option1_value.strip().lower().replace(' ', '')
                                 df['Variant Grams'] = ''
                                 df['Variant Inventory Tracker'] = 'shopify'
@@ -223,7 +237,6 @@ class EbayScraper:
                                     df['Option3 Value'] = self.option3_value
                                 except AttributeError:
                                     df['Option3 Name'] = ''
-                                    df['Option3 Value'] = ''
                                 df['Variant SKU'] = handle[0]+self.option1_value.strip().lower().replace(' ', '')
                                 df['Variant Grams'] = ''
                                 df['Variant Inventory Tracker'] = 'shopify'
@@ -437,7 +450,6 @@ class EbayScraper:
         if json_data:
             json_str = json_data.group()
             json_obj = json.loads(json_str)
-        print(json_obj)
 
         pic_index = json_obj['w'][0][2]['model']['menuItemPictureIndexMap'][str(option_value)]
         image_element = tree.css_first(f'div.ux-image-carousel.img-transition-medium > div[data-idx="{str(pic_index[0])}"]')
