@@ -49,7 +49,6 @@ class EbayScraper:
             self.description = self.get_desc(self.handle)
             if select_box:
                 for i, variant in enumerate(select_box):
-                    options = variant.css('option')
                     if len(select_box) == 1:
                         self.option1_name = select_box[0].attributes.get('selectboxlabel')
                     elif len(select_box) == 2:
@@ -59,6 +58,9 @@ class EbayScraper:
                         self.option1_name = select_box[0].attributes.get('selectboxlabel')
                         self.option2_name = select_box[1].attributes.get('selectboxlabel')
                         self.option3_name = select_box[2].attributes.get('selectboxlabel')
+
+                for i, variant in enumerate(select_box):
+                    options = variant.css('option')
                     for j, option in enumerate(options):
                         if j == 0:
                             continue
@@ -116,6 +118,7 @@ class EbayScraper:
                                     print(e)
                                     df['Option3 Name'] = ''
                                     df['Option3 Value'] = ''
+                                print(i,j)
                                 print(self.option1_name, self.option2_name, self.option3_name)
                                 print(f'opt1:{self.option1_value}, opt2:{self.option2_value}, opt3:{self.option3_value}')
                                 df['Variant SKU'] = handle[0]+self.option1_value.strip().lower().replace(' ', '')
@@ -236,7 +239,11 @@ class EbayScraper:
                                 try:
                                     df['Option3 Value'] = self.option3_value
                                 except AttributeError:
-                                    df['Option3 Name'] = ''
+                                    df['Option3 Value'] = ''
+                                print(i,j)
+                                print(self.option1_name, self.option2_name, self.option3_name)
+                                print(
+                                    f'opt1:{self.option1_value}, opt2:{self.option2_value}, opt3:{self.option3_value}')
                                 df['Variant SKU'] = handle[0]+self.option1_value.strip().lower().replace(' ', '')
                                 df['Variant Grams'] = ''
                                 df['Variant Inventory Tracker'] = 'shopify'
@@ -321,6 +328,9 @@ class EbayScraper:
                 except AttributeError:
                     df['Option3 Name'] = ''
                     df['Option3 Value'] = ''
+                print(3)
+                print(self.option1_name, self.option2_name, self.option3_name)
+                print(f'opt1:{self.option1_value}, opt2:{self.option2_value}, opt3:{self.option3_value}')
                 df['Variant SKU'] = handle[0]
                 df['Variant Grams'] = ''
                 df['Variant Inventory Tracker'] = 'shopify'
