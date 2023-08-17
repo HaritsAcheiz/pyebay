@@ -5,7 +5,10 @@ from selectolax.parser import HTMLParser
 from dataclasses import dataclass
 import pandas as pd
 import re
+from dotenv import load_dotenv
 
+load_dotenv()
+proxy = os.getenv('PROXY')
 
 @dataclass
 class EbayScraper:
@@ -14,7 +17,12 @@ class EbayScraper:
         headers = {
             'user-agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/113.0'
         }
-        with httpx.Client(headers=headers) as client:
+        proxies = {
+        'http://': proxy,
+        'https://': proxy
+        }
+
+        with httpx.Client(headers=headers, proxies=proxies) as client:
             response = client.get(url)
 
         return response
@@ -52,7 +60,7 @@ class EbayScraper:
             'Compare At Price / International': '', 'Status': ''
         }
 
-        warranty = ['None - $0', '1 year - $89']
+        second_options = ['None - $0', '1 year - $89']
 
         # check product availability
         if left_panel:
@@ -61,14 +69,13 @@ class EbayScraper:
             # Multi variant
             if select_box:
                 # Select the options for first option
-                first_options = [option.text() for option in select_box[-1].css('option')]
-
-                # Select the options for second option
-                second_options = warranty
+                # first_options = [option.text() for option in select_box[-1].css('option')]
+                first_options = select_box[-1].css('option')
 
                 # Generate combinations of options
                 for i, first_option in enumerate(first_options[1::]):
                     for j, second_option in enumerate(second_options):
+                        option_value = first_option.attributes.get('value')
                         product = empty_product.copy()
                         if i == 0 and j == 0:
                             for data in product:
@@ -109,7 +116,7 @@ class EbayScraper:
                                 elif data == 'Option1 Name':
                                     product[data] = select_box[-1].attributes.get('selectboxlabel')
                                 elif data == 'Option1 Value':
-                                    product[data] = first_option
+                                    product[data] = first_option.text()
                                 elif data == 'Option2 Name':
                                     product[data] = 'Warranty'
                                 elif data == 'Option2 Value':
@@ -130,6 +137,12 @@ class EbayScraper:
                                     product[data] = True
                                 elif data == 'Taxable':
                                     product[data] = True
+                                elif data == 'Variant Image':
+                                    try:
+                                        product[data] = self.get_variant_image(tree, option_value=option_value)
+                                    except Exception as e:
+                                        print(e)
+                                        product[data] = ''
                                 elif data == 'Image Position':
                                     product[data] = 1
                                 elif data == 'Gift Card':
@@ -145,8 +158,7 @@ class EbayScraper:
                             for image in main_images:
                                 for data in product:
                                     if data == 'Handle':
-                                        product[data] = more_desc.css_first(
-                                            'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > span.ux-textspans--BOLD'
+                                        product[data] = more_desc.css_first(                                            'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > span.ux-textspans--BOLD'
                                         ).text(strip=True)
                                     elif data == 'Image Src':
                                         product[data] = image
@@ -160,12 +172,18 @@ class EbayScraper:
                                         'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > span.ux-textspans--BOLD'
                                     ).text(strip=True)
                                 elif data == 'Variant Price':
-                                    product[data] = float(
-                                        re.findall(
-                                            r"\d+\.\d+",
-                                            left_panel.css_first('div.x-price-primary').text(strip=True))[0])
+                                    if j == 0:
+                                        product[data] = float(
+                                            re.findall(
+                                                r"\d+\.\d+",
+                                                left_panel.css_first('div.x-price-primary').text(strip=True))[0])
+                                    else:
+                                        product[data] = float(
+                                            re.findall(
+                                                r"\d+\.\d+",
+                                                left_panel.css_first('div.x-price-primary').text(strip=True))[0]) + 89.00
                                 elif data == 'Option1 Value':
-                                    product[data] = first_option
+                                    product[data] = first_option.text()
                                 elif data == 'Option2 Value':
                                     product[data] = second_option
                                 elif data == 'Variant SKU':
@@ -184,6 +202,12 @@ class EbayScraper:
                                     product[data] = True
                                 elif data == 'Taxable':
                                     product[data] = True
+                                elif data == 'Variant Image':
+                                    try:
+                                        product[data] = self.get_variant_image(tree, option_value=option_value)
+                                    except Exception as e:
+                                        print(e)
+                                        product[data] = ''
                                 elif data == 'Variant Weight Unit':
                                     product[data] = 'kg'
                                 elif data == 'Status':
@@ -193,75 +217,117 @@ class EbayScraper:
 
             # No Variant
             else:
-                for data in product:
-                    if data == 'Handle':
-                        product[data] = more_desc.css_first(
-                            'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > span.ux-textspans--BOLD'
-                        ).text(strip=True)
-                    elif data == 'Title':
-                        product[data] = left_panel.css_first('h1.x-item-title__mainTitle').text(strip=True)
-                    elif data == 'Body (HTML)':
-                        product[data] = self.get_desc(product['Handle'])
-                    elif data == 'Vendor':
-                        for item in item_specs:
-                            cols = item.css('div.ux-layout-section-evo__col')
-                            for col in cols:
-                                try:
-                                    if col.css_first('div.ux-labels-values__labels').text(strip=True) == 'Brand':
-                                        product[data] = col.css_first('div.ux-labels-values__values').text(strip=True)
-                                except:
-                                    continue
-                    elif data == 'Variant Price':
-                            product[data] = float(
-                                re.findall(
-                                    r"\d+\.\d+",
-                                    left_panel.css_first('div.x-price-primary').text(strip=True))[0])
-                    elif data == 'Google Shopping / Condition':
-                        product[data] = left_panel.css_first('span.ux-icon-text__text > span.clipped').text(strip=True)
-                    elif data == 'Image Src':
-                        product[data] = picture_panel.css_first('img.ux-image-magnify__image--original').attributes.get('src')
-                        if product[data] is None:
-                            product[data] = picture_panel.css_first('img.img-scale-down').attributes.get('src')
-                    elif data == 'Published':
-                        product[data] = True
-                    elif data == 'Variant SKU':
-                        product[data] = product['handle']
-                    elif data == 'Variant Inventory Tracker':
-                        product[data] = 'shopify'
-                    elif data == 'Variant Inventory Qty':
-                        product[data] = 10
-                    elif data == 'Variant Inventory Policy':
-                        product[data] = 'deny'
-                    elif data == 'Variant Fulfillment Service':
-                        product[data] = 'manual'
-                    elif data == 'Variant Compare At Price':
-                        product[data] = product['Variant Price']
-                    elif data == 'Variant Requires Shipping':
-                        product[data] = True
-                    elif data == 'Taxable':
-                        product[data] = True
-                    elif data == 'Image Position':
-                        product[data] = 1
-                    elif data == 'Gift Card':
-                        product[data] = False
-                    elif data == 'Variant Weight Unit':
-                        product[data] = 'kg'
-                    elif data == 'Status':
-                        product[data] = 'active'
-                    collected_df = pd.DataFrame.from_dict(product.copy())
-                    # insert all product images
-                    main_images = self.get_main_product_images(tree)
-                    product = empty_product.copy()
-                    for image in main_images:
+                for j, second_option in enumerate(second_options):
+                    if j == 0:
                         for data in product:
                             if data == 'Handle':
                                 product[data] = more_desc.css_first(
                                     'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > span.ux-textspans--BOLD'
                                 ).text(strip=True)
+                            elif data == 'Title':
+                                product[data] = left_panel.css_first('h1.x-item-title__mainTitle').text(strip=True)
+                            elif data == 'Body (HTML)':
+                                product[data] = self.get_desc(product['Handle'])
+                            elif data == 'Vendor':
+                                for item in item_specs:
+                                    cols = item.css('div.ux-layout-section-evo__col')
+                                    for col in cols:
+                                        try:
+                                            if col.css_first('div.ux-labels-values__labels').text(strip=True) == 'Brand':
+                                                product[data] = col.css_first('div.ux-labels-values__values').text(strip=True)
+                                        except:
+                                            continue
+                            elif data == 'Variant Price':
+                                    product[data] = float(
+                                        re.findall(
+                                            r"\d+\.\d+",
+                                            left_panel.css_first('div.x-price-primary').text(strip=True))[0])
+                            elif data == 'Google Shopping / Condition':
+                                product[data] = left_panel.css_first('span.ux-icon-text__text > span.clipped').text(strip=True)
                             elif data == 'Image Src':
-                                product[data] = image
+                                product[data] = picture_panel.css_first('img.ux-image-magnify__image--original').attributes.get('src')
+                                if product[data] is None:
+                                    product[data] = picture_panel.css_first('img.img-scale-down').attributes.get('src')
+                            elif data == 'Published':
+                                product[data] = True
+                            elif data == 'Option1 Name':
+                                product[data] = 'Warranty'
+                            elif data == 'Option1 Value':
+                                product[data] = second_option
+                            elif data == 'Variant SKU':
+                                product[data] = product['handle']
+                            elif data == 'Variant Inventory Tracker':
+                                product[data] = 'shopify'
+                            elif data == 'Variant Inventory Qty':
+                                product[data] = 10
+                            elif data == 'Variant Inventory Policy':
+                                product[data] = 'deny'
+                            elif data == 'Variant Fulfillment Service':
+                                product[data] = 'manual'
+                            elif data == 'Variant Compare At Price':
+                                product[data] = product['Variant Price']
+                            elif data == 'Variant Requires Shipping':
+                                product[data] = True
+                            elif data == 'Taxable':
+                                product[data] = True
+                            elif data == 'Image Position':
+                                product[data] = 1
+                            elif data == 'Gift Card':
+                                product[data] = False
+                            elif data == 'Variant Weight Unit':
+                                product[data] = 'kg'
+                            elif data == 'Status':
+                                product[data] = 'active'
                             collected_df = pd.DataFrame.from_dict(product.copy())
-                            collected_df = pd.concat([collected_df, pd.DataFrame.from_dict(product).copy()], ignore_index=True)
+                            # insert all product images
+                            main_images = self.get_main_product_images(tree)
+                            product = empty_product.copy()
+                            for image in main_images:
+                                for data in product:
+                                    if data == 'Handle':
+                                        product[data] = more_desc.css_first(
+                                            'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > span.ux-textspans--BOLD'
+                                        ).text(strip=True)
+                                    elif data == 'Image Src':
+                                        product[data] = image
+                                    collected_df = pd.DataFrame.from_dict(product.copy())
+                                    collected_df = pd.concat([collected_df, pd.DataFrame.from_dict(product).copy()], ignore_index=True)
+                    else:
+                        for data in product:
+                            if data == 'Handle':
+                                product[data] = more_desc.css_first(
+                                    'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > span.ux-textspans--BOLD'
+                                ).text(strip=True)
+                            elif data == 'Variant Price':
+                                product[data] = float(
+                                    re.findall(
+                                        r"\d+\.\d+",
+                                        left_panel.css_first('div.x-price-primary').text(strip=True))[0]) + 89.00
+                            elif data == 'Option1 Value':
+                                product[data] = second_option
+                            elif data == 'Variant SKU':
+                                product[data] = (product['Handle'] + product['Option1 Value']).lower().replace(' ', '')
+                            elif data == 'Variant Inventory Tracker':
+                                product[data] = 'shopify'
+                            elif data == 'Variant Inventory Qty':
+                                product[data] = 10
+                            elif data == 'Variant Inventory Policy':
+                                product[data] = 'deny'
+                            elif data == 'Variant Fulfillment Service':
+                                product[data] = 'manual'
+                            elif data == 'Variant Compare At Price':
+                                product[data] = product['Variant Price']
+                            elif data == 'Variant Requires Shipping':
+                                product[data] = True
+                            elif data == 'Taxable':
+                                product[data] = True
+                            elif data == 'Variant Weight Unit':
+                                product[data] = 'kg'
+                            elif data == 'Status':
+                                product[data] = 'active'
+                        product_df = pd.DataFrame(product, index=[0])
+                        collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
+
             # save to csv file
             if os.path.exists('result.csv'):
                 collected_df.to_csv('result.csv', index=False, mode='a', header=False)
@@ -300,6 +366,7 @@ class EbayScraper:
         if json_data:
             json_str = json_data.group()
             json_obj = json.loads(json_str)
+        # print(json.dumps(json_obj, indent=2))
 
         pic_index = json_obj['w'][0][2]['model']['menuItemPictureIndexMap'][str(option_value)]
         image_element = tree.css_first(f'div.ux-image-carousel.img-transition-medium > div[data-idx="{str(pic_index[0])}"]')
@@ -342,14 +409,36 @@ class EbayScraper:
                     continue
         return body
 
+    def get_product_link(self):
+        pg = 1
+        search_htmls = []
+        retries = 0
+        while pg < 11:
+            if retries < 3:
+                try:
+                    url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={pg}'
+                    html = self.fetch(url)
+                    if
+                    search_htmls.append()
+                    pg += 1
+                    retries = 0
+                except:
+                    retries += 1
+                    continue
+            else:
+                break
+        return search_htmls
+
     def run(self, urls):
-        responses = [self.fetch(url) for url in urls]
-        datas = [self.get_data(response) for response in responses]
+        # responses = [self.fetch(url) for url in urls]
+        # datas = [self.get_data(response) for response in responses]
+        urls = self.get_product_link()
+        print(urls)
 
 if __name__ == '__main__':
     urls = [
-        # 'https://www.ebay.com/itm/126042540408',
-        # 'https://www.ebay.com/itm/385740921094',
+        'https://www.ebay.com/itm/126042540408',
+        'https://www.ebay.com/itm/385740921094',
         'https://www.ebay.com/itm/385717993904']
     s = EbayScraper()
     s.run(urls)
