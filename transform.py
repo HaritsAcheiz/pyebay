@@ -29,7 +29,7 @@ class TransformEbay:
         else:
             human_template = """
             You are required to modify the description. The description constructed by single paragraph (maximum 250 words) and should has "Ride On" phrase at least 1 if it is not found you should insert it as part of sentence of the paragraph without make new sentence.
-            Next step You have to make the first "Ride On" phrase linked to https://teesparty.myshopify.com/ with article tag for each variant.
+            Next step You have to make the first "Ride On" phrase linked to https://azautodetailing.com/collections/all with article tag for each variant.
             Then You need to create bullet point of features and specifications for each variant below each paragraph.
             You also need to remove any references to ebay or returns or things like that in the description or mentioning of not to leave bad feedback.
             Ensure that the result is in body element of HTML format and follows the provided title and description.

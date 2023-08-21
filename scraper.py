@@ -128,9 +128,9 @@ class EbayScraper:
                                         strip=True)
                                 elif data == 'Image Src':
                                     product[data] = picture_panel.css_first(
-                                        'div.ux-image-carousel-item.active.image > img').attributes.get('src')
+                                        'div.ux-image-carousel-item.draft.image').css_first('img').attributes.get('src')
                                 elif data == 'Published':
-                                    product[data] = True
+                                    product[data] = False
                                 elif data == 'Option1 Name':
                                     product[data] = select_box[-1].attributes.get('selectboxlabel')
                                 elif data == 'Option1 Value':
@@ -169,7 +169,7 @@ class EbayScraper:
                                 elif data == 'Variant Weight Unit':
                                     product[data] = 'kg'
                                 elif data == 'Status':
-                                    product[data] = 'active'
+                                    product[data] = 'draft'
                             product_df = pd.DataFrame(product, index=[0])
                             collected_df = product_df.copy()
                             main_images = self.get_main_product_images(tree)
@@ -236,7 +236,7 @@ class EbayScraper:
                                 elif data == 'Variant Weight Unit':
                                     product[data] = 'kg'
                                 elif data == 'Status':
-                                    product[data] = 'active'
+                                    product[data] = 'draft'
                             product_df = pd.DataFrame(product, index=[0])
                             collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
@@ -281,9 +281,9 @@ class EbayScraper:
                                     strip=True)
                             elif data == 'Image Src':
                                 product[data] = picture_panel.css_first(
-                                    'div.ux-image-carousel-item.active.image > img').attributes.get('src')
+                                    'div.ux-image-carousel-item.draft.image').css_first('img').attributes.get('src')
                             elif data == 'Published':
-                                product[data] = True
+                                product[data] = False
                             elif data == 'Option1 Name':
                                 product[data] = 'Warranty'
                             elif data == 'Option1 Value':
@@ -311,7 +311,7 @@ class EbayScraper:
                             elif data == 'Variant Weight Unit':
                                 product[data] = 'kg'
                             elif data == 'Status':
-                                product[data] = 'active'
+                                product[data] = 'draft'
                             product_df = pd.DataFrame(product, index=[0])
                             collected_df = product_df.copy()
 
@@ -371,15 +371,15 @@ class EbayScraper:
                             elif data == 'Variant Weight Unit':
                                 product[data] = 'kg'
                             elif data == 'Status':
-                                product[data] = 'active'
+                                product[data] = 'draft'
                         product_df = pd.DataFrame(product, index=[0])
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('result2.csv'):
-                collected_df.to_csv('result2.csv', index=False, mode='a', header=False)
+            if os.path.exists('result.csv'):
+                collected_df.to_csv('result.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('result2.csv', index=False)
+                collected_df.to_csv('result.csv', index=False)
             print('Product Scraped')
 
     def second_format(self, tree):
@@ -476,7 +476,7 @@ class EbayScraper:
                                     if theme['listings'][0]['listingId'] == listingId:
                                         product[data] = theme['listings'][0]['image']['URL']
                             elif data == 'Published':
-                                product[data] = True
+                                product[data] = False
                             elif data == 'Option1 Name':
                                 product[data] = 'Theme'
                             elif data == 'Option1 Value':
@@ -513,7 +513,7 @@ class EbayScraper:
                             elif data == 'Variant Weight Unit':
                                 product[data] = 'kg'
                             elif data == 'Status':
-                                product[data] = 'active'
+                                product[data] = 'draft'
                         product_df = pd.DataFrame(product, index=[0])
                         collected_df = product_df.copy()
                         main_images = self.get_main_product_images2(themes)
@@ -594,7 +594,7 @@ class EbayScraper:
                             elif data == 'Variant Weight Unit':
                                 product[data] = 'kg'
                             elif data == 'Status':
-                                product[data] = 'active'
+                                product[data] = 'draft'
                         product_df = pd.DataFrame(product, index=[0])
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
@@ -633,7 +633,7 @@ class EbayScraper:
                         elif data == 'Image Src':
                             product[data] = theme['listings'][0]['image']['URL']
                         elif data == 'Published':
-                            product[data] = True
+                            product[data] = False
                         elif data == 'Option1 Name':
                             product[data] = 'Warranty'
                         elif data == 'Option1 Value':
@@ -668,7 +668,7 @@ class EbayScraper:
                         elif data == 'Variant Weight Unit':
                             product[data] = 'kg'
                         elif data == 'Status':
-                            product[data] = 'active'
+                            product[data] = 'draft'
                     product_df = pd.DataFrame(product, index=[0])
                     collected_df = product_df.copy()
                     main_images = self.get_main_product_images2(theme)
@@ -723,15 +723,15 @@ class EbayScraper:
                         elif data == 'Variant Weight Unit':
                             product[data] = 'kg'
                         elif data == 'Status':
-                            product[data] = 'active'
+                            product[data] = 'draft'
                     product_df = pd.DataFrame(product, index=[0])
                     collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
         # save to csv file
-        if os.path.exists('result2.csv'):
-            collected_df.to_csv('result2.csv', index=False, mode='a', header=False)
+        if os.path.exists('result.csv'):
+            collected_df.to_csv('result.csv', index=False, mode='a', header=False)
         else:
-            collected_df.to_csv('result2.csv', index=False)
+            collected_df.to_csv('result.csv', index=False)
         print('Product Scraped')
 
 
@@ -847,9 +847,9 @@ class EbayScraper:
         pg = 1
         product_links = []
         retries = 0
-        while pg < 11 and retries < 3:
+        while pg < 2 and retries < 3:
             try:
-                url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={str(pg)}'
+                url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={str(pg)}&_sop=10'
                 html = self.fetch(url)
                 tree = HTMLParser(html.text)
                 if tree.css_first('h2.srp-controls__count-heading'):
@@ -860,17 +860,19 @@ class EbayScraper:
                     print(f'page {str(pg)} scraped')
                     pg += 1
                     retries = 0
+                else:
+                    break
             except Exception as e:
                 print(f'get product link retry due to {e}')
                 retries += 1
                 continue
-
+        print(f'{len(product_links)} product links collected')
 
         return product_links
 
     def run(self):
-        # urls = self.get_product_link()
-        urls = ['https://www.ebay.com/itm/386009161124?hash=item59dff05da4:g:5IMAAOSwaPpk4ybC&amdata=enc%3AAQAIAAAA4NPJsbZgrMpF79wkoBvMgoQ1wIa9pXyxXYP0L5kshiL5SPDodmKS8lVP%2FcfwUsPrrxiLD1qN3EiFkrek01tEIywlHYtIXhJJHcLa4ZJmw2OVz2Jm97%2B7MFCw7ZRlHIuBCDnNTMPH5i0FdLYVCnUp5R7Y%2Bk1D1odZScB72pwg7eMMur3kwIjbq1n4%2BEP%2FSw14dun%2BMiIPznarrTKt%2FtNZB%2FUGyLAWZQbjsQYnjKqfck%2BTgboDucm2m9bhmjwxJIel97isqE7hP9h4bwtSJR0vgWl84z5EJiGMc5jj%2Fp%2BR8hdR%7Ctkp%3ABk9SR8ySzJrDYg']
+        urls = self.get_product_link()
+        # urls = ['https://www.ebay.com/itm/386009161124?hash=item59dff05da4:g:5IMAAOSwaPpk4ybC&amdata=enc%3AAQAIAAAA4NPJsbZgrMpF79wkoBvMgoQ1wIa9pXyxXYP0L5kshiL5SPDodmKS8lVP%2FcfwUsPrrxiLD1qN3EiFkrek01tEIywlHYtIXhJJHcLa4ZJmw2OVz2Jm97%2B7MFCw7ZRlHIuBCDnNTMPH5i0FdLYVCnUp5R7Y%2Bk1D1odZScB72pwg7eMMur3kwIjbq1n4%2BEP%2FSw14dun%2BMiIPznarrTKt%2FtNZB%2FUGyLAWZQbjsQYnjKqfck%2BTgboDucm2m9bhmjwxJIel97isqE7hP9h4bwtSJR0vgWl84z5EJiGMc5jj%2Fp%2BR8hdR%7Ctkp%3ABk9SR8ySzJrDYg']
         responses = [self.fetch(url) for url in urls]
         datas = [self.get_data(response) for response in responses]
         # print(datas)
