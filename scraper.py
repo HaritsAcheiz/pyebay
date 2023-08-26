@@ -389,10 +389,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('result2.csv'):
-                collected_df.to_csv('result2.csv', index=False, mode='a', header=False)
+            if os.path.exists('result 66-70.csv'):
+                collected_df.to_csv('result 66-70.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('result2.csv', index=False)
+                collected_df.to_csv('result 66-70.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -750,10 +750,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('result2.csv'):
-                collected_df.to_csv('result2.csv', index=False, mode='a', header=False)
+            if os.path.exists('result 66-70.csv'):
+                collected_df.to_csv('result 66-70.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('result2.csv', index=False)
+                collected_df.to_csv('result 66-70.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -868,12 +868,12 @@ class EbayScraper:
         return body
 
     def get_product_link(self):
-        pg = 1
+        pg = 66
         product_links = []
         retries = 0
-        while pg < 3 and retries < 3:
+        while pg < 71 and retries < 3:
             try:
-                url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={str(pg)}&_sop=16'
+                url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={str(pg)}&_sop=16&&_fcid=1'
                 html = self.fetch(url)
                 tree = HTMLParser(html.text)
                 if tree.css_first('h2.srp-controls__count-heading'):
@@ -894,9 +894,12 @@ class EbayScraper:
 
         return product_links
 
+    def eBayAPI(self):
+        pass
+
     def run(self):
-        # urls = self.get_product_link()
-        urls = ['https://www.ebay.com/itm/364430102406']
+        urls = self.get_product_link()
+        # urls = ['https://www.ebay.com/itm/364430102406']
         responses = [self.fetch(url) for url in urls]
         datas = [self.get_data(response) for response in responses]
         # print(datas)
