@@ -70,27 +70,27 @@ class TransformEbay:
             # Answer:
             # """
 
-            # human_template = """
-            # Please create only 1 paragraph limited to 250 words based on the given product title and description. Ensure that the paragraph meets the following conditions:
-            # 1. Remove any mention of payment details, including methods and options.
-            # 2. Omit all information related to return policies and procedures.
-            # 3. Exclude any references to feedback, both positive and negative.
-            # 4. Leave out any content about the company ("us") and its background.
-            # 5. Do not include any references to copyright or legal information.
-            # 6. Remove any mentions of warranty terms or coverage.
-            # 7. Exclude all information about shipping, including options and times.
-            # 8. Exclude any references to other marketplaces like eBay or Amazon.
-            # 9. Remove any mentions of ASIN number.
-            # 10. Add bullet points to mention key specifications and features of the product.
-            # 11. Remove all brand names if product is not identified as spare part except the brand name is Power Wheels.
-            # 12. Replace the shop name with "Azautodetailing".
-            # 13. **Specific Instruction: Insert the following HTML element exactly as shown, make it blend with the paragraph. This element must contain the phrase "ride-on" and link to "https://azautodetailing.com/collections/all":**
-            # <a href="https://azautodetailing.com/collections/all">ride-on</a>
-            # 14. Present the output in HTML format.
-            # Product Title: {title}
-            # Product Description: {current_description}
-            # Answer:
-            # """
+            human_template = """
+            Please create only 1 paragraph limited to 250 words based on the given product title and description. Ensure that the paragraph meets the following conditions:
+            1. Remove any mention of payment details, including methods and options.
+            2. Omit all information related to return policies and procedures.
+            3. Exclude any references to feedback, both positive and negative.
+            4. Leave out any content about the company ("us") and its background.
+            5. Do not include any references to copyright or legal information.
+            6. Remove any mentions of warranty terms or coverage.
+            7. Exclude all information about shipping, including options and times.
+            8. Exclude any references to other marketplaces like eBay or Amazon.
+            9. Remove any mentions of ASIN number.
+            10. Add bullet points to mention key specifications and features of the product.
+            11. Remove all brand names except the brand name is Power Wheels if product is not identified as spare part.
+            12. Replace the shop name with "Azautodetailing".
+            13. **Specific Instruction: Insert the following HTML element exactly as shown, make it blend with the paragraph. This element must contain the phrase "ride-on" and link to "https://azautodetailing.com/collections/all":**
+            <a href="https://azautodetailing.com/collections/all">ride-on</a>
+            14. Present the output in HTML format.
+            Product Title: {title}
+            Product Description: {current_description}
+            Answer:
+            """
 
             human_template = """
             Craft a captivating and unique product description for a {title} that instantly grabs the customer's attention. Highlight the [MAIN BENEFIT/FEATURE] that sets it apart from the rest. Infuse excitement by showcasing the [QUALITY/EXPERIENCE] and [KEY FEATURES] that make this product a must-have. Engage the reader with details about [USER AGE], [USAGE METHOD], and [ADDITIONAL FEATURES]. Provide [SPECIFICATIONS] in [USA MEASUREMENTS] to offer a clear picture of the product's dimensions and capabilities. Use enticing language to create a sense of urgency and encourage immediate action. Make sure to exclude any references to [PAYMENT METHODS], [FEEDBACK], [SHIPPING], [RETURN & REFUND POLICY], [WARRANTY], [EBAY] or [RATINGS], focusing solely on igniting the desire to own this exceptional product. Conclude by inviting customers to EMBEDDED LINK: CONTACT US for personalized assistance. Additionally, embed a hyperlink for the term 'ride on' that directs to [EMBEDDED LINK: www.MagicCars.com]."""
@@ -119,10 +119,13 @@ class TransformEbay:
 
             human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
             chat_prompt_template = ChatPromptTemplate(messages=[human_message_prompt],
-                                                      input_variables=['title', 'current_description'])
+                                                      # input_variables=['title', 'current_description'])
+                                                      input_variable=['title'])
             chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.9)
 
-            output = chat(chat_prompt_template.format_prompt(title=title, current_description=description).to_messages())
+            # output = chat(chat_prompt_template.format_prompt(title=title, current_description=description).to_messages())
+            output = chat(
+                chat_prompt_template.format_prompt(title=title).to_messages())
             content = output.content
             print(f'Transform {title} description completed!')
             return content

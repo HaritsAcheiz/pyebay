@@ -132,14 +132,19 @@ class EbayScraper:
                                     product[data] = left_panel.css_first('span.ux-icon-text__text > span.clipped').text(
                                         strip=True)
                                 elif data == 'Image Src':
+                                    # try:
+                                    #     product[data] = picture_panel.css_first(
+                                    #         'div.ux-image-carousel-item.draft.image').css_first('img').attributes.get(
+                                    #         'src')
+                                    # except:
+                                    #     product[data] = picture_panel.css_first(
+                                    #         'div.ux-image-carousel-item.active.image').css_first('img').attributes.get(
+                                    #         'src')
                                     try:
-                                        product[data] = picture_panel.css_first(
-                                            'div.ux-image-carousel-item.draft.image').css_first('img').attributes.get(
-                                            'src')
-                                    except:
-                                        product[data] = picture_panel.css_first(
-                                            'div.ux-image-carousel-item.active.image').css_first('img').attributes.get(
-                                            'src')
+                                        product[data] = self.get_variant_image(tree, option_value=option_value)
+                                    except Exception as e:
+                                        print(e)
+                                        product[data] = ''
                                 elif data == 'Published':
                                     product[data] = False
                                 elif data == 'Option1 Name':
@@ -389,10 +394,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('result 66-70.csv'):
-                collected_df.to_csv('result 66-70.csv', index=False, mode='a', header=False)
+            if os.path.exists('result 201-209.csv'):
+                collected_df.to_csv('result 201-209.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('result 66-70.csv', index=False)
+                collected_df.to_csv('result 201-209.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -750,10 +755,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('result 66-70.csv'):
-                collected_df.to_csv('result 66-70.csv', index=False, mode='a', header=False)
+            if os.path.exists('result 201-209.csv'):
+                collected_df.to_csv('result 201-209.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('result 66-70.csv', index=False)
+                collected_df.to_csv('result 201-209.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -868,10 +873,10 @@ class EbayScraper:
         return body
 
     def get_product_link(self):
-        pg = 66
+        pg = 201
         product_links = []
         retries = 0
-        while pg < 71 and retries < 3:
+        while pg < 210 and retries < 3:
             try:
                 url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={str(pg)}&_sop=16&&_fcid=1'
                 html = self.fetch(url)
