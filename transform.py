@@ -1,9 +1,11 @@
+import json
+
 from dotenv import load_dotenv
 import openai
 import os
 from dataclasses import dataclass
 import pandas as pd
-from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
+from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
 from langchain.chat_models import ChatOpenAI
 from selectolax.parser import HTMLParser
 import re
@@ -24,111 +26,80 @@ class TransformEbay:
 
         return result
 
-    def openai_edit(self, title, description):
+    def openai_edit(self, title, description, additional_spec):
+        html = """
+               *Step 15: Present Output in HTML Format*
+                   Format the output in HTML format, incorporating all the above steps. The final product description should be presented in valid HTML markup."""
         if pd.isna(description):
             result = description
+
         else:
-            # human_template_v0 = """
-            # You are required to paraphrase the description that constructed by single paragraph (maximum 250 words) with only 1 additional "Ride On" phrase as "<a>" element that linked to "https://azautodetailing.com/collections/all" and bullet point of features and specifications below paragraph for each variant.
-            # Change all brand names to Magic Cars.
-            # Remove any info about payment, customs declaration, free shipping, shipping information, delivery service, return policy, carriers information, mentioning of not to leave bad feedback and all word reference to marketplace platform such as ebay.
-            # Present the output in HTML format within a <body> element. Ensure the accuracy of information based on the given title and description.
-            # Title:
-            # {title}
-            # Description:
-            # {current_description}
-            # Answer
-            # """
-
-            # human_template_v1 = """
-            # You are an SEO Specialist who has 5 years of experience in product marketing. You have created many content for products that you want to market.
-            # You know how to write a description of the product, so it becomes SEO-friendly.
-            # You can use keywords effectively and exclude unnecessary information on product descriptions such as (payment method, shipping method, returns, leaving a bad feedback warning, about us content, copyright and reference to another marketplace platform like eBay)
-            # With that experience, please diversify the following description {current_description} within 250 words maximum based on the following product title {title} that use Magic Cars as a brand name which is associated with this link "https://azautodetailing.com/collections/all" as a product catalog.
-            # Remove all information about payment method, shipping method, returns, feedback, about us content, copyright and reference to another marketplace platform like eBay
-            # Present the output in HTML format within a <body> element.
-            # Answer:
-            # """
-
-            # condition = """
-            # 1. Remove informations about payment,
-            # 2. Remove informations about return,
-            # 3. Remove information about feedback,
-            # 4. Remove information about us,
-            # 5. Remove information about copyright,
-            # 6. Remove information about warranty,
-            # 7. Remove information about shipping,
-            # 8. Remove reference to another marketplace like eBay or Amazon,
-            # 9. Replace all brand name with magic cars,
-            # 10. Replace all shop name with Azautodetailing,
-            # 11. Paragraph should has <a href=https://azautodetailing.com/collections/all>ride-on</a>.
-            # """
-            #
-            # human_template = """
-            # Please diversify the following description {current_description} that should meet the following condition {condition} into a paragraph limited to 250 words based on the following product title {title}.
-            # Present the output in HTML format inside <body> element.
-            # Answer:
-            # """
-
             human_template = """
-            Please create only 1 paragraph limited to 250 words based on the given product title and description. Ensure that the paragraph meets the following conditions:
-            1. Remove any mention of payment details, including methods and options.
-            2. Omit all information related to return policies and procedures.
-            3. Exclude any references to feedback, both positive and negative.
-            4. Leave out any content about the company ("us") and its background.
-            5. Do not include any references to copyright or legal information.
-            6. Remove any mentions of warranty terms or coverage.
-            7. Exclude all information about shipping, including options and times.
-            8. Exclude any references to other marketplaces like eBay or Amazon.
-            9. Remove any mentions of ASIN number.
-            10. Add bullet points to mention key specifications and features of the product.
-            11. Remove all brand names except the brand name is Power Wheels if product is not identified as spare part.
-            12. Replace the shop name with "Azautodetailing".
-            13. **Specific Instruction: Insert the following HTML element exactly as shown, make it blend with the paragraph. This element must contain the phrase "ride-on" and link to "https://azautodetailing.com/collections/all":**
-            <a href="https://azautodetailing.com/collections/all">ride-on</a>
-            14. Present the output in HTML format.
+            Your task is to follow the steps outlined below to ensure the generated description adheres to the specified conditions:
+            
+            *Step 1: Introduction*
+            Create a single paragraph, limited to 250 words, based on the given product title, description and additional specification. Ensure that the description does not start with the word "Introducing". The aim is to provide concise and relevant information while ensuring compliance with specific conditions.
+            
+            *Step 2: Remove Payment Details*
+            Omit any references to payment methods and options, ensuring that no payment-related details are mentioned within the paragraph.
+            
+            *Step 3: Exclude Return Policies*
+            Remove all information related to return policies and procedures, ensuring that the paragraph does not contain any references to returns.
+            
+            *Step 4: Omit Feedback References*
+            Exclude any references to feedback, whether positive or negative, to keep the focus on the product's specifications and features.
+            
+            *Step 5: Remove Company Background*
+            Omit any content about the company ("us") and its background, ensuring that the paragraph solely focuses on the product.
+            
+            *Step 6: Exclude Warranty Terms*
+            Remove any mentions of warranty terms or coverage, shifting the focus to the product's attributes rather than its warranty.
+            
+            *Step 7: Exclude Shipping Information*
+            Exclude all information about shipping, including shipping options and delivery times, as these details are not required in the paragraph.
+            
+            *Step 8: Remove Marketplace References*
+            Omit any references to other marketplaces such as eBay or Amazon, maintaining a singular focus on the product.
+            
+            *Step 9: Remove ASIN Number*
+            Ensure that any mentions of ASIN numbers are removed from the paragraph.
+            
+            *Step 10: Add Bullet Points for Specifications*
+            Add bullet points to the paragraph to highlight key specifications and features of the product, enhancing readability and clarity.
+            
+            *Step 11: Brand Name Considerations*
+            Remove all brand names from the paragraph unless the product is identified as a spare part. In the case of the brand name "Power Wheel," retain it.
+            
+            *Step 12: Replace Shop Name*
+            Replace the shop name in the paragraph with "MagicCars" as specified.
+            
+            *Step 13: Insert HTML Element*
+            Insert the following HTML element exactly as shown: <a href="https://www.magiccars.com">Check out our ride-on collection</a>. This element must contain the phrase "ride-on" and link to the provided URL.
+            
+            *Step 14: Ensure Unique Description*
+            To ensure that the generated description looks different from the provided one, emphasize distinct phrasing, synonyms, and alternative sentence structures while highlighting the product's key features and specifications.
+            
             Product Title: {title}
             Product Description: {current_description}
+            Additional Specification: {additional_spec}
+            
             Answer:
             """
 
-            human_template = """
-            Craft a captivating and unique product description for a {title} that instantly grabs the customer's attention. Highlight the [MAIN BENEFIT/FEATURE] that sets it apart from the rest. Infuse excitement by showcasing the [QUALITY/EXPERIENCE] and [KEY FEATURES] that make this product a must-have. Engage the reader with details about [USER AGE], [USAGE METHOD], and [ADDITIONAL FEATURES]. Provide [SPECIFICATIONS] in [USA MEASUREMENTS] to offer a clear picture of the product's dimensions and capabilities. Use enticing language to create a sense of urgency and encourage immediate action. Make sure to exclude any references to [PAYMENT METHODS], [FEEDBACK], [SHIPPING], [RETURN & REFUND POLICY], [WARRANTY], [EBAY] or [RATINGS], focusing solely on igniting the desire to own this exceptional product. Conclude by inviting customers to EMBEDDED LINK: CONTACT US for personalized assistance. Additionally, embed a hyperlink for the term 'ride on' that directs to [EMBEDDED LINK: www.MagicCars.com]."""
-
-            # human_template = """
-            #             Please diversify this following description: {current_description} into only 1 paragraph limited to 250 words based on this following product title {title}. Ensure that the paragraph meets the following conditions:
-            #             1. Remove any mention of payment details, including methods and options.
-            #             2. Omit all information related to return policies and procedures.
-            #             3. Exclude any references to feedback, both positive and negative.
-            #             4. Leave out any content about the company ("us") and its background.
-            #             5. Do not include any references to copyright or legal information.
-            #             6. Remove any mentions of warranty terms or coverage.
-            #             7. Exclude all information about shipping, including options and times.
-            #             8. Exclude any references to other marketplaces like eBay or Amazon.
-            #             9. Remove any mentions of ASIN number.
-            #             10. Add bullet points to mention key specifications and features of the product.
-            #             11. Remove all brand names if product is not identified as spare part except the brand name is Power Wheels.
-            #             12. Replace the shop name with "Azautodetailing".
-            #             13. **Specific Instruction: Insert the following HTML element exactly as shown, make it blend with the paragraph. This element must contain the phrase "ride-on" and link to "https://azautodetailing.com/collections/all":**
-            #             <a href="https://azautodetailing.com/collections/all">ride-on</a>
-            #             14. Present the output in HTML format.
-            #             Product Title: {title}
-            #             Product Description: {current_description}
-            #             Answer:
-            #             """
+            system_template = """As a content writer for an e-commerce site, your task is to create an engaging product description using the provided title and description. Emphasize the product's features and specifications while adhering to specific guidelines. Craft a description that not only informs but is also SEO-friendly."""
 
             human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
-            chat_prompt_template = ChatPromptTemplate(messages=[human_message_prompt],
-                                                      # input_variables=['title', 'current_description'])
-                                                      input_variable=['title'])
-            chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.9)
+            system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)
+            chat_prompt_template = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
+            chat_prompt_format = chat_prompt_template.format_messages(title=title, current_description=description, additional_spec=additional_spec)
+            chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
-            # output = chat(chat_prompt_template.format_prompt(title=title, current_description=description).to_messages())
-            output = chat(
-                chat_prompt_template.format_prompt(title=title).to_messages())
+            output = chat(chat_prompt_format)
             content = output.content
+            result = content
             print(f'Transform {title} description completed!')
-            return content
+
+        return result
 
     def openai_edit_title(self, title, description):
         if pd.isna(title):
@@ -149,47 +120,98 @@ class TransformEbay:
             # Answer:
             # """
 
+            # human_template = """
+            #             You are an SEO Specialist who has 5 years of experience in product marketing.
+            #             You know how to write the title of the product, so it becomes SEO-friendly.
+            #             You can use keywords effectively.
+            #             With that experience, please diversify and sensationalize the following title {title} in 16 words maximum based on the following product description {current_description}. Ensure that the paragraph meets the following conditions:
+            #             1. Identify whether the product is a toy unit or spare parts, if the product is toy unit remove all brand names execpt for Power Wheel brand.
+            #             Answer:
+            #             """
+            #
+            # human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
+            # chat_prompt_template = ChatPromptTemplate(messages=[human_message_prompt],
+            #                                           input_variables=['title', 'current_description'])
+
             human_template = """
-                        You are an SEO Specialist who has 5 years of experience in product marketing.
-                        You know how to write the title of the product, so it becomes SEO-friendly.
-                        You can use keywords effectively.
-                        With that experience, please diversify and sensationalize the following title {title} in 16 words maximum based on the following product description {current_description}. Ensure that the paragraph meets the following conditions:
-                        1. Identify whether the product is a toy unit or spare parts, if the product is toy unit remove all brand names execpt for Power Wheel brand.
+                        Your task is to follow the steps outlined below to ensure the generated title adheres to the specified conditions:
+
+                        *Step 1: Summarize Information from Title and Description*
+                        Create a sentence, limited to 16 words, based on the given product title and description.
+
+                        *Step 2: Brand Name Considerations*
+                        Remove all brand names from the title unless the product is identified as a spare part. In the case of the brand name "Power Wheel," retain it.
+
+                        *Step 3: Replace Shop Name or Address*
+                        Replace the shop name or Address in the title with "MagicCars" as specified.
+
+                        *Step 4: Ensure Unique Title*
+                        To ensure that the generated title looks different from the provided one, emphasize distinct phrasing, synonyms, and alternative sentence structures while highlighting the product title.
+
+                        *Step 7: Exclude Shipping Information*
+                        Exclude all information about shipping, including shipping options and delivery times, as these details are not required in the title.
+
+                        Product Title: {title}
+                        Product Description: {current_description}
+
                         Answer:
                         """
 
+            system_template = """You are Master of AI whisper that work to create content for e-commerce website using Open AI. Your goal is to generate a  sensational product title based on the given product title and description"""
+
             human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
-            chat_prompt_template = ChatPromptTemplate(messages=[human_message_prompt],
-                                                      input_variables=['title', 'current_description'])
+            system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)
+            chat_prompt_template = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
+            chat_prompt_format = chat_prompt_template.format_messages(title=title, current_description=description)
+            chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
-            chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.9)
-
-            output = chat(chat_prompt_template.format_prompt(title=title, current_description=description).to_messages())
+            output = chat(chat_prompt_format)
             content = output.content
-            match = re.search(r'"(.*?)"', content)
-
+            match = re.findall(r'"(.*?)"', content)
             if match:
-                return match.group(1)
                 print(f'Transform {title} title completed!')
+                result = match[0]
             else:
                 print(f'Transform {title} title completed!')
-                return content
+                result = content
         return result
 
     def transform_description(self, df):
         df['text_desc'] = df['Body (HTML)'].apply(self.parse)
-        df['Body (HTML)'] = df.apply(lambda x: self.openai_edit(x['Title'], x['text_desc']), axis=1)
-        df.drop(columns='text_desc', inplace=True)
+        df['Body (HTML)'] = df.apply(lambda x: self.openai_edit(x['Title'], x['text_desc'], x['Item_Desc']), axis=1)
+        df.drop(columns=['text_desc'], inplace=True)
 
     def transform_title(self, df):
         df['Title'] = df.apply(lambda x: self.openai_edit_title(x['Title'], x['Body (HTML)']), axis=1)
 
     def run(self):
-        df = pd.read_csv('result 1-5.csv')
+        file_name = '01_Descending_Price'
+        df = pd.read_csv(
+            f'original/{file_name}.csv'
+            # 'cek.csv'
+        )
         df['Vendor'] = df['Vendor'].astype('Int64').astype('str').replace('<NA>', '')
         self.transform_title(df)
         self.transform_description(df)
-        df.to_csv('openai_result 1-5.csv', index=False)
+        catalog_df = df[df['Vendor'] != '']
+        catalog_df['Brand'] = catalog_df['Item_Desc'].apply(self.extract_brand)
+        df.to_csv(
+            f'final_result/{file_name}.csv',
+            index=False)
+        catalog_df.drop(columns=['Item_Desc'], inplace=True)
+        catalog_df.to_csv(
+            f'catalogue/{file_name}.csv',
+            index=False
+        )
+
+    def extract_brand(self, item_specs):
+        item_specs = item_specs.replace("\'", "\"")
+        item_specs_data = json.loads(item_specs)
+        try:
+            result = item_specs_data['Brand'].copy()
+        except:
+            result = 'No Brand'
+        return result
 
 if __name__ == '__main__':
     t = TransformEbay()
