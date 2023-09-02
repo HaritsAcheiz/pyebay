@@ -50,10 +50,9 @@ class EbayScraper:
     def first_format(self, tree):
         print('first_format')
         try:
-            feedbacks = int(re.search(r'\((\d+)\)', tree.css_first('h2.fdbk-detail-list__title > span.SECONDARY').text()).group(1))
+            feedbacks = int(re.search(r'\((\d+)\)', tree.css_first('h2.fdbk-detail-list__title > span.SECONDARY').text().replace(',', '')).group(1))
         except:
             feedbacks = 0
-        print(feedbacks)
 
         picture_panel = tree.css_first('div#PicturePanel')
         right_panel = tree.css_first('div#RightSummaryPanel')
@@ -81,8 +80,7 @@ class EbayScraper:
             'Google Shopping / Custom Label 1': '', 'Google Shopping / Custom Label 2': '',
             'Google Shopping / Custom Label 3': '', 'Google Shopping / Custom Label 4': '', 'Variant Image': '',
             'Variant Weight Unit': '', 'Variant Tax Code': '', 'Cost per item': '', 'Price / International': '',
-            'Compare At Price / International': '', 'Status': '', 'Item_Desc': {}
-
+            'Compare At Price / International': '', 'Status': '', 'Item_Desc': {}, 'Shipping': ''
         }
 
         second_options = ['None - $0', '1 year - $89']
@@ -114,7 +112,7 @@ class EbayScraper:
                                 elif data == 'Title':
                                     product[data] = left_panel.css_first('h1.x-item-title__mainTitle').text(strip=True)
                                 elif data == 'Body (HTML)':
-                                    product[data] = self.get_desc(product['Handle'], product['Title'])
+                                    product[data] = self.get_desc(product['Handle'])
                                 elif data == 'Vendor':
                                     product[data] = f"{product['Handle']}"
                                 elif data == 'Variant Price':
@@ -125,14 +123,6 @@ class EbayScraper:
                                     product[data] = left_panel.css_first('span.ux-icon-text__text > span.clipped').text(
                                         strip=True)
                                 elif data == 'Image Src':
-                                    # try:
-                                    #     product[data] = picture_panel.css_first(
-                                    #         'div.ux-image-carousel-item.draft.image').css_first('img').attributes.get(
-                                    #         'src')
-                                    # except:
-                                    #     product[data] = picture_panel.css_first(
-                                    #         'div.ux-image-carousel-item.active.image').css_first('img').attributes.get(
-                                    #         'src')
                                     product[data] = self.get_variant_image(tree, option_value=option_value)
                                     if product[data] == '':
                                         product[data] = tree.css_first(
@@ -187,6 +177,12 @@ class EbayScraper:
                                     product[data] = 'draft'
                                 elif data == 'Item_Desc':
                                     product[data] = self.get_item_desc(item_specs=item_specs)
+                                elif data == 'Shipping':
+                                    try:
+                                        shipping_panel = left_panel.css_first('div.ux-labels-values.col-12.ux-labels-values--shipping')
+                                        product[data] = shipping_panel.css_first('span.ux-textspans.ux-textspans--BOLD').text(strip=True)
+                                    except:
+                                        product[data] = ''
                             product_df = pd.DataFrame(product, index=[0])
                             collected_df = product_df.copy()
                             main_images = self.get_main_product_images(tree)
@@ -275,19 +271,9 @@ class EbayScraper:
                             elif data == 'Title':
                                 product[data] = left_panel.css_first('h1.x-item-title__mainTitle').text(strip=True)
                             elif data == 'Body (HTML)':
-                                product[data] = self.get_desc(product['Handle'], product['Title'])
+                                product[data] = self.get_desc(product['Handle'])
                             elif data == 'Vendor':
                                 product[data] = f"{product['Handle']}"
-                                # for item in item_specs:
-                                #     cols = item.css('div.ux-layout-section-evo__col')
-                                #     for col in cols:
-                                #         try:
-                                #             if col.css_first('div.ux-labels-values__labels').text(
-                                #                     strip=True) == 'Brand':
-                                #                 product[data] = col.css_first('div.ux-labels-values__values').text(
-                                #                     strip=True)
-                                #         except:
-                                #             continue
                             elif data == 'Variant Price':
                                 product[data] = float(
                                     re.findall(
@@ -334,6 +320,14 @@ class EbayScraper:
                                 product[data] = 'draft'
                             elif data == 'Item_Desc':
                                 product[data] = self.get_item_desc(item_specs=item_specs)
+                            elif data == 'Shipping':
+                                try:
+                                    shipping_panel = left_panel.css_first(
+                                        'div.ux-labels-values.col-12.ux-labels-values--shipping')
+                                    product[data] = shipping_panel.css_first(
+                                        'span.ux-textspans.ux-textspans--BOLD').text(strip=True)
+                                except:
+                                    product[data] = ''
                             product_df = pd.DataFrame(product, index=[0])
                             collected_df = product_df.copy()
 
@@ -412,7 +406,6 @@ class EbayScraper:
                 re.search(r'\((\d+)\)', tree.css_first('h2.fdbk-detail-list__title > span.SECONDARY').text()).group(1))
         except:
             feedbacks = 0
-        print(feedbacks)
         picture_panel = tree.css_first('div.item-image-wrapper')
         center_panel = tree.css_first('div#hero-item')
         product_info = tree.css_first('div.product-info.no-product-picture')
@@ -434,7 +427,7 @@ class EbayScraper:
             'Google Shopping / Custom Label 1': '', 'Google Shopping / Custom Label 2': '',
             'Google Shopping / Custom Label 3': '', 'Google Shopping / Custom Label 4': '', 'Variant Image': '',
             'Variant Weight Unit': '', 'Variant Tax Code': '', 'Cost per item': '', 'Price / International': '',
-            'Compare At Price / International': '', 'Status': '', 'Item_Desc': ''
+            'Compare At Price / International': '', 'Status': '', 'Item_Desc': {}, 'Shipping': ''
         }
 
         second_options = ['None - $0', '1 year - $89']
@@ -538,6 +531,14 @@ class EbayScraper:
                                     product[data] = 'kg'
                                 elif data == 'Status':
                                     product[data] = 'draft'
+                                elif data == 'Item_Desc':
+                                    product[data] = self.get_item_desc2(item_specs=center_panel)
+                                elif data == 'Shipping':
+                                    try:
+                                        shipping_panel = product_info.css_first('div.ux-labels-values.col-12.ux-labels-values--shipping')
+                                        product[data] = shipping_panel.css_first('span.ux-textspans.ux-textspans--BOLD').text(strip=True)
+                                    except:
+                                        product[data] = ''
                             product_df = pd.DataFrame(product, index=[0])
                             collected_df = product_df.copy()
                             main_images = self.get_main_product_images2(themes)
@@ -643,13 +644,6 @@ class EbayScraper:
                                 product[data] = product_detail.text(strip=True)
                             elif data == 'Vendor':
                                 product[data] = f"{product['Handle']}"
-                                # spec_rows = product_detail.css('section.product-spectification > div')
-                                # for spec_row in spec_rows:
-                                #     if 'Brand' in spec_row.text(strip=True):
-                                #         description_lists = spec_row.css('li')
-                                #         for description in description_lists:
-                                #             if 'Brand' in description.text(strip=True):
-                                #                 product[data] = description.css_first('div.s-value').text(strip=True)
                             elif data == 'Variant Price':
                                 product[data] = float(theme['listings'][0]['displayPrice']['value']['value'])
                             elif data == 'Google Shopping / Condition':
@@ -693,6 +687,16 @@ class EbayScraper:
                                 product[data] = 'kg'
                             elif data == 'Status':
                                 product[data] = 'draft'
+                            elif data == 'Item_Desc':
+                                product[data] = self.get_item_desc2(item_specs=center_panel)
+                            elif data == 'Shipping':
+                                try:
+                                    shipping_panel = product_info.css_first(
+                                        'div.ux-labels-values.col-12.ux-labels-values--shipping')
+                                    product[data] = shipping_panel.css_first(
+                                        'span.ux-textspans.ux-textspans--BOLD').text(strip=True)
+                                except:
+                                    product[data] = ''
                         product_df = pd.DataFrame(product, index=[0])
                         collected_df = product_df.copy()
                         main_images = self.get_main_product_images2(theme)
@@ -782,7 +786,7 @@ class EbayScraper:
     def get_price(self, tree, option_value):
         script = tree.css('script')
         for item in script:
-            if 'MSKU' in item.text():
+            if 'menuItemMap' in item.text():
                 temp = item.text()
 
         json_data = re.search(r'\{.*\}', temp)
@@ -855,7 +859,7 @@ class EbayScraper:
                 images.append(image)
         return images
 
-    def get_desc(self, item_id, product_title):
+    def get_desc(self, item_id):
         url = f'https://vi.vipr.ebaydesc.com/ws/eBayISAPI.dll?ViewItemDescV4&item={item_id}'
         response = self.fetch(url)
         tree = HTMLParser(response.text)
@@ -918,26 +922,31 @@ class EbayScraper:
                             temp_dict[col.css_first('div.ux-labels-values__labels').text(strip=True)] = col.css_first('div.ux-labels-values__values').text(strip=True)
                     else:
                         continue
-        print(temp_dict)
         return str(temp_dict)
 
-    def get_item_desc2(self, product_detail):
+    def get_item_desc2(self, item_specs):
         temp_dict = {}
-        spec_rows = product_detail.css('section.product-spectification > div')
-        for spec_row in spec_rows:
-            data = spec_row + ': '
-            if 'Brand' in spec_row.text(strip=True):
-                description_lists = spec_row.css('li')
-                for description in description_lists:
-                    if 'Brand' in description.text(strip=True):
-                        product[data] = description.css_first('div.s-value').text(strip=True)
+        for item in item_specs:
+            cols = item.css('div.ux-layout-section-evo__col')
+            if cols:
+                for col in cols:
+                    if col.css_first('div.ux-labels-values__values'):
+                        if col.css_first('div.ux-labels-values__labels').text(strip=True) in ['UPC', 'MPN',
+                                                                                              'Country/Region of Manufacture',
+                                                                                              'Condition']:
+                            continue
+                        else:
+                            temp_dict[col.css_first('div.ux-labels-values__labels').text(strip=True)] = col.css_first(
+                                'div.ux-labels-values__values').text(strip=True)
+                    else:
+                        continue
+        return str(temp_dict)
 
     def run(self):
         urls = self.get_product_link()
-        # urls = ['https://www.ebay.com/itm/364389147969']
+        # urls = ['https://www.ebay.com/itm/314162332171']
         responses = [self.fetch(url) for url in urls]
         datas = [self.get_data(response) for response in responses]
-        # print(datas)
 
 if __name__ == '__main__':
     s = EbayScraper()

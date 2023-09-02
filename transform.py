@@ -27,70 +27,36 @@ class TransformEbay:
         return result
 
     def openai_edit(self, title, description, additional_spec):
-        html = """
-        *Step 15: Present Output in HTML Format*
-        Format the output in HTML format, incorporating all the above steps. The final product description should be presented in valid HTML markup.
-                   
-        *Step 13: Insert HTML Element*
-        Insert the following HTML element exactly as shown: <a href="https://www.magiccars.com">Check out our ride-on collection</a>. This element must contain the phrase "ride-on" and link to the provided URL.
-        """
         if pd.isna(description):
             result = description
 
         else:
             human_template = """
-            Your task is to follow the steps outlined below to ensure the generated description adheres to the specified conditions:
-            
-            *Step 1: Introduction*
-            Create a single paragraph limited to 250 words, based on the given product title, description and additional specification. Ensure that the description does not start with the word "Introducing". The aim is to provide concise and relevant information while ensuring compliance with specific conditions.
-            
-            *Step 2: Remove Payment Details*
-            Omit any references to payment methods and options, ensuring that no payment-related details are mentioned within the paragraph.
-            
-            *Step 3: Exclude Return Policies*
-            Remove all information related to return policies and procedures, ensuring that the paragraph does not contain any references to returns.
-            
-            *Step 4: Omit Feedback References*
-            Exclude any references to feedback, whether positive or negative, to keep the focus on the product's specifications and features.
-            
-            *Step 5: Remove Company Background*
-            Omit any content about the company ("us") and its background, ensuring that the paragraph solely focuses on the product.
-            
-            *Step 6: Exclude Warranty Terms*
-            Remove any mentions of warranty terms or coverage, shifting the focus to the product's attributes rather than its warranty.
-            
-            *Step 7: Exclude Shipping Information*
-            Exclude all information about shipping, including shipping options and delivery times, as these details are not required in the paragraph.
-            
-            *Step 8: Remove Marketplace References*
-            Omit any references to other marketplaces such as eBay or Amazon, maintaining a singular focus on the product.
-            
-            *Step 9: Remove ASIN Number*
-            Ensure that any mentions of ASIN numbers are removed from the paragraph.
-            
-            *Step 10: Add Bullet Points for Specifications*
-            Add bullet points to the paragraph to highlight key specifications and features of the product, enhancing readability and clarity.
-            
-            *Step 11: Brand Name Considerations*
-            Remove all brand names from the paragraph unless the product is identified as a spare part. In the case of the brand name "Power Wheel," retain it.
-            
-            *Step 12: Replace Shop Name*
-            Replace the shop name in the paragraph with "MagicCars" as specified.
-            
-            *Step 13: Create Closing Sentence with "Ride On" Link*
-            Craft an enticing closing sentence that incorporates the phrase "<a href='https://www.magiccars.com/'>ride on</a>" while seamlessly inviting the reader to explore the product further through the provided link. Ensure that this HTML element <a href='https://www.magiccars.com/'>ride on</a> consistently connects the "ride on" phrase in all generated descriptions.
+            Generate unique product descriptions based on the provided title, description, and product specifications. Ensure that the rewritten descriptions follow these specific steps:
+            Step 1: Remove Payment Details.
+            Step 2: Exclude Return Policies.
+            Step 3: Omit Feedback References.
+            Step 4: Remove Company Background.
+            Step 5: Exclude Warranty Terms.
+            Step 6: Exclude Shipping Information.
+            Step 7: Remove Marketplace References.
+            Step 8: Remove ASIN Number.
+            Step 9: Add Bullet Points for Specifications.
+            Step 10: Create Closing Sentence with '<a href='https://www.magiccars.com/'>ride on</a>' Link.
+            Step 11: Ensure Unique Description by emphasizing distinct phrasing, synonyms, and alternative sentence structures while highlighting the product's key features and specifications.
 
-            *Step 14: Ensure Unique Description*
-            To ensure that the generated description looks different from the provided one, emphasize distinct phrasing, synonyms, and alternative sentence structures while highlighting the product's key features and specifications.
+            Here's the original product description:
+            {current_description}
+            Here's the title:
+            {title}
+            Here's the item specification:
+            {additional_spec}
             
-            Product Title: {title}
-            Product Description: {current_description}
-            Additional Specification: {additional_spec}
-            
+            Please rewrite this description following the provided steps and guidelines to ensure it is unique and optimized for our e-commerce website.
             Answer:
             """
 
-            system_template = """As a content writer for an e-commerce site, your task is to create an engaging product description using the provided title and description. Emphasize the product's features and specifications while adhering to specific guidelines. Craft a description that not only informs but is also SEO-friendly."""
+            system_template = """You are looking to create unique product descriptions for your e-commerce website, ensuring that the descriptions are not considered plagiarism. You have a dataset of product titles, descriptions, and specifications, but you want to rewrite them to remove certain elements (payment details, return policies, feedback references, company background, warranty terms, shipping information, marketplace references, ASIN numbers) and enhance the readability and clarity by adding bullet points for specifications and creating an enticing closing sentence with a consistent link to encourage readers to explore the product further on your website."""
 
             human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
             system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)
@@ -138,21 +104,18 @@ class TransformEbay:
             #                                           input_variables=['title', 'current_description'])
 
             human_template = """
-                        Your task is Transform the Ordinary into the Extraordinary: Take this {title} to the Next Level with Feature or Benefit mentioned in the {current_description} adheres to the specified conditions:
+                        please diversify and sensationalize the following title {title} in 16 words maximum based on the following product description {current_description}. Ensure that the paragraph meets the following conditions:
 
-                        *Step 1: Summarize Information from Title and Description*
-                        Generate a title that succinctly summarizes the key information from both the title and description in 16 words or less.
-
-                        *Step 2: Brand Name Considerations*
+                        *Step 1: Brand Name Considerations*
                         Remove all brand names from the title unless the product is identified as a spare part. In the case of the brand name "Power Wheel," retain it.
 
-                        *Step 3: Exclude Return Policies*
+                        *Step 2: Exclude Return Policies*
                         Remove all information related to return policies and procedures, ensuring that the paragraph does not contain any references to returns.
 
-                        *Step 4: Ensure Unique Title*
+                        *Step 3: Ensure Unique Title*
                         To ensure that the generated title looks different from the provided one, emphasize distinct phrasing, synonyms, and alternative sentence structures while highlighting the product title.
 
-                        *Step 5: Exclude Shipping Information*
+                        *Step 4: Exclude Shipping Information*
                         Exclude all information about shipping.
                         
                         Answer:
