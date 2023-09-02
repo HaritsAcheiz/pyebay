@@ -397,10 +397,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/01_Desc_Price.csv'):
-                collected_df.to_csv('original/01_Desc_Price.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/001-005 Desc.csv'):
+                collected_df.to_csv('original/001-005 Desc.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/01_Desc_Price.csv', index=False)
+                collected_df.to_csv('original/001-005 Desc.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -752,10 +752,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/01_Desc_Price.csv'):
-                collected_df.to_csv('original/01_Desc_Price.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/001-005 Desc.csv'):
+                collected_df.to_csv('original/001-005_Desc.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/01_Desc_Price.csv', index=False)
+                collected_df.to_csv('original/001-005 Desc.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -857,28 +857,29 @@ class EbayScraper:
 
     def get_desc(self, item_id, product_title):
         url = f'https://vi.vipr.ebaydesc.com/ws/eBayISAPI.dll?ViewItemDescV4&item={item_id}'
-        print(url)
         response = self.fetch(url)
         tree = HTMLParser(response.text)
-        body=''
+        elements_text = []
         if len(tree.css_first('body').text()) <= 8000:
             body = tree.css_first('body').text()
         else:
-            # div_elements = tree.css('div')
-            # for element in div_elements[::-1]:
-            #     if ('description' in element.text(strip=True).lower()) or (product_title.lower() in element.text(strip=True).lower()):
-            #         body = element.text(strip=True)
-            #         break
-            #     else:
-            #         continue
-            body = tree.css_first('body').text()[0:8000]
+            elements = tree.css("div")
+            for element in elements:
+                if '<style>' in element.html:
+                    continue
+                else:
+                    print(element.text(strip=True))
+                    elements_text.append(element.text(strip=True))
+            body = '\n'.join(elements_text)
+            if len(body) > 8000:
+                body = body[0:8000]
         return body
 
     def get_product_link(self):
         pg = 1
         product_links = []
         retries = 0
-        while pg < 2 and retries < 3:
+        while pg < 6 and retries < 3:
             try:
                 url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={str(pg)}&_sop=16&&_fcid=1'
                 html = self.fetch(url)
@@ -933,7 +934,7 @@ class EbayScraper:
 
     def run(self):
         urls = self.get_product_link()
-        # urls = ['https://www.ebay.com/itm/185851192052']
+        # urls = ['https://www.ebay.com/itm/364389147969']
         responses = [self.fetch(url) for url in urls]
         datas = [self.get_data(response) for response in responses]
         # print(datas)
