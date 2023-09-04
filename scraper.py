@@ -872,7 +872,6 @@ class EbayScraper:
                 if '<style>' in element.html:
                     continue
                 else:
-                    print(element.text(strip=True))
                     elements_text.append(element.text(strip=True))
             body = '\n'.join(elements_text)
             if len(body) > 8000:
