@@ -25,7 +25,7 @@ class EbayScraper:
         }
 
         retries = 0
-        while retries < 3:
+        while retries < 10:
             try:
                 with httpx.Client(headers=headers, proxies=proxies) as client:
                 # with httpx.Client(headers=headers) as client:
@@ -116,9 +116,12 @@ class EbayScraper:
                                 elif data == 'Vendor':
                                     product[data] = f"{product['Handle']}"
                                 elif data == 'Variant Price':
-                                    product[data] = float(
-                                        re.findall(
-                                            r"\d+\.\d+", left_panel.css('div.x-price-primary')[-1].text(strip=True))[0])
+                                    # product[data] = float(
+                                    #     re.findall(
+                                    #         r"\d+\.\d+", left_panel.css('div.x-price-primary')[-1].text(strip=True))[0])
+                                    product[data] = float(re.search(r'\$\s*([\d,]+(?:\.\d+)?)', left_panel.css(
+                                        'div.x-price-primary')[-1].text(strip=True).replace(',', '')).group(
+                                        1))
                                 elif data == 'Google Shopping / Condition':
                                     product[data] = left_panel.css_first('span.ux-icon-text__text > span.clipped').text(
                                         strip=True)
@@ -275,9 +278,12 @@ class EbayScraper:
                             elif data == 'Vendor':
                                 product[data] = f"{product['Handle']}"
                             elif data == 'Variant Price':
-                                product[data] = float(
-                                    re.findall(
-                                        r"\d+\.\d+", left_panel.css('div.x-price-primary')[-1].text(strip=True))[0])
+                                # product[data] = float(
+                                    # re.findall(
+                                    #     r"\d+\.\d+", left_panel.css('div.x-price-primary')[-1].text(strip=True))[0])
+                                product[data] = float(re.search(r'\$\s*([\d,]+(?:\.\d+)?)', left_panel.css(
+                                    'div.x-price-primary')[-1].text(strip=True).replace(',', '')).group(
+                                    1))
                             elif data == 'Google Shopping / Condition':
                                 product[data] = left_panel.css_first('span.ux-icon-text__text > span.clipped').text(
                                     strip=True)
@@ -362,9 +368,12 @@ class EbayScraper:
                                         'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > span.ux-textspans.ux-textspans--BOLD').text(
                                         strip=True)
                             elif data == 'Variant Price':
-                                product[data] = float(
-                                    re.findall(
-                                        r"\d+\.\d+", left_panel.css('div.x-price-primary')[-1].text(strip=True))[0]) + 89.00
+                                # product[data] = float(
+                                    # re.findall(
+                                    #     r"\d+\.\d+", left_panel.css('div.x-price-primary')[-1].text(strip=True))[0]) + 89.00
+                                product[data] = float(re.search(r'\$\s*([\d,]+(?:\.\d+)?)', left_panel.css(
+                                    'div.x-price-primary')[-1].text(strip=True).replace(',', '')).group(
+                                    1)) + 89.00
                             elif data == 'Option1 Value':
                                 product[data] = second_option
                             elif data == 'Variant SKU':
@@ -391,10 +400,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/001-005 Desc.csv'):
-                collected_df.to_csv('original/001-005 Desc.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/006-010_Desc_original.csv'):
+                collected_df.to_csv('original/006-010_Desc_original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/001-005 Desc.csv', index=False)
+                collected_df.to_csv('original/006-010_Desc_original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -756,10 +765,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/001-005 Desc.csv'):
-                collected_df.to_csv('original/001-005_Desc.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/006-010_Desc_original.csv'):
+                collected_df.to_csv('original/006-010_Desc_original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/001-005 Desc.csv', index=False)
+                collected_df.to_csv('original/006-010_Desc_original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -879,10 +888,10 @@ class EbayScraper:
         return body
 
     def get_product_link(self):
-        pg = 1
+        pg = 6
         product_links = []
         retries = 0
-        while pg < 6 and retries < 3:
+        while pg < 11 and retries < 3:
             try:
                 url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={str(pg)}&_sop=16&&_fcid=1'
                 html = self.fetch(url)
@@ -943,7 +952,7 @@ class EbayScraper:
 
     def run(self):
         urls = self.get_product_link()
-        # urls = ['https://www.ebay.com/itm/314162332171']
+        # urls = ['https://www.ebay.com/itm/276024192304']
         responses = [self.fetch(url) for url in urls]
         datas = [self.get_data(response) for response in responses]
 
