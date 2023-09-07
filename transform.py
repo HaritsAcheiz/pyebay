@@ -13,6 +13,7 @@ import re
 load_dotenv()
 openai_api_key = os.getenv('OPENAI_API_KEY')
 openai.api_key = openai_api_key
+special = 'Â'
 
 @dataclass
 class TransformEbay:
@@ -45,11 +46,11 @@ class TransformEbay:
 
 # Experiment
             system_template = """
-            You are an SEO specialist in a ride-on toy company. Your task is to enhance the provided product description for the given product title by enriching it with the provided additional specifications. Infuse the description with an adventurous and playful tone that embodies the spirit of outdoor fun and imaginative exploration. Include all the provided additional specifications, key features, and product specifications. Remove any special character. Remove any information regarding payment, return, feedback, company background, warranty, shipping, marketplace references, contact, health issue, eBay and ASIN number. In the opening paragraph, Always use the product title itself without any word before it except "The". Always incorporate the phrase 'ride-on' seamlessly into the description. Utilize vivid language, unique phrasing, synonyms, and alternative sentence structures to consistently create a one-of-a-kind product description. Use imperial metrics for all measurement units and convert their values where necessary. Present the output as a well-structured paragraph that always including bullet points to highlight key features and specifications. Your ultimate goal is to create an engaging and SEO-friendly product description.
+            You are an SEO specialist in a ride-on toy company. Your task is to enhance the provided product description for the given product title by enriching it with the provided additional specifications. Infuse the description with an adventurous and playful tone that embodies the spirit of outdoor fun and imaginative exploration. Include all the provided additional specifications, key features, and product specifications. Remove all special characters. Remove any information regarding payment, return, feedback, company background, warranty, shipping, contact us. Remove information regarding marketplace platform such as eBay, Amazon, etc. Remove information regarding health issue warning such as cancer, reproductive harm, birth defects. In the opening paragraph, Always use the product title itself without any word before it except "The". Always incorporate the phrase 'ride-on' seamlessly into the description. Utilize vivid language, unique phrasing, synonyms, and alternative sentence structures to consistently create a one-of-a-kind product description. Use imperial metrics for all measurement units and convert their values where necessary. Present the output as a well-structured paragraph that constantly including all key features and specifications in bullet points. Your ultimate goal is to create an engaging and SEO-friendly product description.
             """
 
             human_template = """
-            Please elevate {current_description} of {title} product which has {additional_spec} as additional specification.
+            Please elevate {current_description} of {title} product which has {additional_spec} as additional specification. Answer:
             """
 
             human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
@@ -76,7 +77,7 @@ class TransformEbay:
 
             system_template = """You are SEO specialist in ride-on toy company. Your job is diversify provided title into the new one so it is not considered as duplicate content. Remove all information about shipping and return. Remove any special character. Your ultimate goal is to create an engaging and SEO-friendly product title"""
 
-            human_template = """Please diversify this {title} into the new one"""
+            human_template = """Please diversify this {title} into the new one. Answer:"""
 
             human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
             system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)
@@ -99,14 +100,13 @@ class TransformEbay:
         df['text_desc'] = df['Body (HTML)'].apply(self.parse)
         df['Body (HTML)'] = df.apply(lambda x: self.openai_edit(x['Title'], x['text_desc'], x['Item_Desc']), axis=1)
         df.to_csv('temp/temp2.csv', index=False)
-        df['Body (HTML)'] = df['Body (HTML)'].apply(self.replace_rideon)
+        df['Body (HTML)'] = df['Body (HTML)'].apply(lambda self.replace_rideon)
         df.drop(columns=['text_desc'], inplace=True)
 
     def transform_title(self, df):
         df['Title'] = df.apply(lambda x: self.openai_edit_title(x['Title'], x['Body (HTML)']), axis=1)
 
     def replace_rideon(self, description):
-        print(description)
         try:
             count_of_rideon = description.count('ride-on')
             if count_of_rideon > 1:

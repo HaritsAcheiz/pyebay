@@ -51,13 +51,15 @@ class EbayScraper:
         print('first_format')
         try:
             feedbacks = int(re.search(r'\((\d+)\)', tree.css_first('h2.fdbk-detail-list__title > span.SECONDARY').text().replace(',', '')).group(1))
-        except:
+        except Exception as e:
+            print(e)
             feedbacks = 0
 
         picture_panel = tree.css_first('div#PicturePanel')
         right_panel = tree.css_first('div#RightSummaryPanel')
         left_panel = tree.css_first('div#LeftSummaryPanel')
-        more_desc = tree.css_first('div#readMoreDesc')
+        # more_desc = tree.css_first('div#readMoreDesc')
+        more_desc = tree.css_first('div.tabs__content')
         item_specs = tree.css(
             'div.ux-layout-section-evo__item.ux-layout-section-evo__item--table-view > div.ux-layout-section-evo__row')
         if left_panel:
@@ -400,10 +402,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/006-010_Desc_original.csv'):
-                collected_df.to_csv('original/006-010_Desc_original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/20230907_011-015_Desc_Original.csv.csv'):
+                collected_df.to_csv('original/20230907_011-015_Desc_Original.csv.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/006-010_Desc_original.csv', index=False)
+                collected_df.to_csv('original/20230907_011-015_Desc_Original.csv.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -443,7 +445,7 @@ class EbayScraper:
 
         if feedbacks >= 20:
             product = empty_product.copy()
-            scripts= tree.css('script')
+            scripts = tree.css('script')
             for script in scripts:
                 if '__prp' in script.text():
                     pattern = r'\((\{.*\})\)'
@@ -765,16 +767,34 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/006-010_Desc_original.csv'):
-                collected_df.to_csv('original/006-010_Desc_original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/20230907_011-015_Desc_Original.csv.csv'):
+                collected_df.to_csv('original/20230907_011-015_Desc_Original.csv.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/006-010_Desc_original.csv', index=False)
+                collected_df.to_csv('original/20230907_011-015_Desc_Original.csv.csv', index=False)
             print('Product Scraped')
         else:
             pass
 
 
     def get_data(self, response):
+        print(f'Getting product data of {response.url}...')
+        retries = 0
+        while retries < 3:
+            tree = HTMLParser(response.text)
+            if tree.css_first('div.tabs__content'):
+                flag = tree.css_first('div.product-info.no-product-picture')
+                if flag:
+                    self.second_format(tree)
+                    break
+                else:
+                    self.first_format(tree)
+                    break
+            else:
+                response = self.fetch(response.url)
+                retries += 1
+                continue
+
+    def get_data_v2(self, response):
         print(f'Getting product data of {response.url}...')
         retries = 0
         while retries < 3:
@@ -797,23 +817,31 @@ class EbayScraper:
         for item in script:
             if 'menuItemMap' in item.text():
                 temp = item.text()
+                break
 
-        json_data = re.search(r'\{.*\}', temp)
+        json_data = temp.split('concat', 1)[1][1:-1]
+
         if json_data:
-            json_str = json_data.group()
-            json_obj = json.loads(json_str)
-        try:
-            var_id = json_obj['w'][0][2]['model']['menuItemMap'][str(option_value)]['matchingVariationIds'][0]
-            price = json_obj['w'][0][2]['model']['variationsMap'][str(var_id)]['binModel']['price']['value']['convertedFromValue']
-            currency = json_obj['w'][0][2]['model']['variationsMap'][str(var_id)]['binModel']['price']['value']['convertedFromCurrency']
-            result = {'var_id': var_id, 'price': price, 'currency': currency}
-        except:
-            var_id = json_obj['w'][0][2]['model']['menuItemMap'][str(option_value)]['matchingVariationIds'][0]
-            price = json_obj['w'][0][2]['model']['variationsMap'][str(var_id)]['binModel']['price']['value'][
-                'value']
-            currency = json_obj['w'][0][2]['model']['variationsMap'][str(var_id)]['binModel']['price']['value'][
-                'currency']
-            result = {'var_id': var_id, 'price': price, 'currency': currency}
+            json_obj = json.loads(json_data)
+            # print(json.dumps(json_obj, indent=2))
+
+        var_id = json_obj['o']['w'][0][2]['model']['modules']['MSKU']['menuItemMap'][str(option_value)]['matchingVariationIds'][0]
+        price = json_obj['o']['w'][0][2]['model']['modules']['MSKU']['variationsMap'][str(var_id)]['binModel']['price']['value']['value']
+        currency = json_obj['o']['w'][0][2]['model']['modules']['MSKU']['variationsMap'][str(var_id)]['binModel']['price']['value']['currency']
+        result = {'var_id': var_id, 'price': price, 'currency': currency}
+
+        # try:
+        #     var_id = json_obj['w'][0][2]['model']['menuItemMap'][str(option_value)]['matchingVariationIds'][0]
+        #     price = json_obj['w'][0][2]['model']['variationsMap'][str(var_id)]['binModel']['price']['value']['convertedFromValue']
+        #     currency = json_obj['w'][0][2]['model']['variationsMap'][str(var_id)]['binModel']['price']['value']['convertedFromCurrency']
+        #     result = {'var_id': var_id, 'price': price, 'currency': currency}
+        # except:
+        #     var_id = json_obj['w'][0][2]['model']['menuItemMap'][str(option_value)]['matchingVariationIds'][0]
+        #     price = json_obj['w'][0][2]['model']['variationsMap'][str(var_id)]['binModel']['price']['value'][
+        #         'value']
+        #     currency = json_obj['w'][0][2]['model']['variationsMap'][str(var_id)]['binModel']['price']['value'][
+        #         'currency']
+        #     result = {'var_id': var_id, 'price': price, 'currency': currency}
 
         return result
 
@@ -822,15 +850,17 @@ class EbayScraper:
         for item in script:
             if 'MSKU' in item.text():
                 temp = item.text()
+                break
 
-        json_data = re.search(r'\{.*\}', temp)
+        json_data = temp.split('concat', 1)[1][1:-1]
+
         if json_data:
-            json_str = json_data.group()
-            json_obj = json.loads(json_str)
+            json_obj = json.loads(json_data)
+            print(json.dumps(json_obj, indent=2))
+
         try:
-            pic_index = json_obj['w'][0][2]['model']['menuItemPictureIndexMap'][str(option_value)]
-            image_element = tree.css_first(
-                f'div.ux-image-carousel.img-transition-medium > div[data-idx="{str(pic_index[0])}"]')
+            pic_index = json_obj['o']['w'][0][2]['model']['modules']['MSKU']['menuItemPictureIndexMap'][str(option_value)]
+            image_element = tree.css_first(f'div.ux-image-carousel.img-transition-medium > div[data-idx="{str(pic_index[0])}"]')
             image = image_element.css_first('img').attributes.get('data-src')
         except:
             image = ''
@@ -888,10 +918,10 @@ class EbayScraper:
         return body
 
     def get_product_link(self):
-        pg = 6
+        pg = 11
         product_links = []
         retries = 0
-        while pg < 11 and retries < 3:
+        while pg < 16 and retries < 3:
             try:
                 url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={str(pg)}&_sop=16&&_fcid=1'
                 html = self.fetch(url)
@@ -951,8 +981,8 @@ class EbayScraper:
         return str(temp_dict)
 
     def run(self):
-        urls = self.get_product_link()
-        # urls = ['https://www.ebay.com/itm/276024192304']
+        # urls = self.get_product_link()
+        urls = ['https://www.ebay.com/itm/354451908574?hash=item5286fae7de:g:KTQAAOSwmt1jZP3B&var=623852415484']
         responses = [self.fetch(url) for url in urls]
         datas = [self.get_data(response) for response in responses]
 
