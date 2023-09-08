@@ -27,7 +27,7 @@ class EbayScraper:
         retries = 0
         while retries < 10:
             try:
-                with httpx.Client(headers=headers, proxies=proxies) as client:
+                with httpx.Client(headers=headers, proxies=proxies, timeout=10) as client:
                 # with httpx.Client(headers=headers) as client:
                     response = client.get(url)
                 retries = 0
@@ -47,12 +47,20 @@ class EbayScraper:
 
         return response
 
+    def standardize(self, input: str):
+        clean_value = input.lower().replace('   (out of stock)', '').strip().capitalize()
+        if clean_value == "Colour":
+            result = "Color"
+        else:
+            result = clean_value
+
+        return result
+
     def first_format(self, tree):
         print('first_format')
         try:
             feedbacks = int(re.search(r'\((\d+)\)', tree.css_first('h2.fdbk-detail-list__title > span.SECONDARY').text().replace(',', '')).group(1))
         except Exception as e:
-            print(e)
             feedbacks = 0
 
         picture_panel = tree.css_first('div#PicturePanel')
@@ -127,6 +135,8 @@ class EbayScraper:
                                 elif data == 'Google Shopping / Condition':
                                     product[data] = left_panel.css_first('span.ux-icon-text__text > span.clipped').text(
                                         strip=True)
+                                elif data == 'Google Shopping / Custom Label 1':
+                                    product[data] = 'B71'
                                 elif data == 'Image Src':
                                     product[data] = self.get_variant_image(tree, option_value=option_value)
                                     if product[data] == '':
@@ -141,10 +151,14 @@ class EbayScraper:
                                                 'img').attributes.get('data-src')
                                 elif data == 'Published':
                                     product[data] = False
+                                # elif data == 'Option1 Name':
+                                #     product[data] = select_box[-1].attributes.get('selectboxlabel')
                                 elif data == 'Option1 Name':
-                                    product[data] = select_box[-1].attributes.get('selectboxlabel')
+                                    product[data] = self.standardize(select_box[-1].attributes.get('selectboxlabel'))
+                                # elif data == 'Option1 Value':
+                                #     product[data] = first_option.text()
                                 elif data == 'Option1 Value':
-                                    product[data] = first_option.text()
+                                    product[data] = self.standardize(first_option.text())
                                 elif data == 'Option2 Name':
                                     product[data] = 'Warranty'
                                 elif data == 'Option2 Value':
@@ -225,7 +239,7 @@ class EbayScraper:
                                     else:
                                         product[data] = float(self.get_price(tree, option_value)['price']) + 89.00
                                 elif data == 'Option1 Value':
-                                    product[data] = first_option.text()
+                                    product[data] = self.standardize(first_option.text())
                                 elif data == 'Option2 Value':
                                     product[data] = second_option
                                 elif data == 'Variant SKU':
@@ -289,6 +303,8 @@ class EbayScraper:
                             elif data == 'Google Shopping / Condition':
                                 product[data] = left_panel.css_first('span.ux-icon-text__text > span.clipped').text(
                                     strip=True)
+                            elif data == 'Google Shopping / Custom Label 1':
+                                product[data] = 'B71'
                             elif data == 'Image Src':
                                 try:
                                     product[data] = picture_panel.css_first(
@@ -402,10 +418,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/20230907_011-015_Desc_Original.csv.csv'):
-                collected_df.to_csv('original/20230907_011-015_Desc_Original.csv.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/20230909_021-025_Desc_Original.csv'):
+                collected_df.to_csv('original/20230909_021-025_Desc_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/20230907_011-015_Desc_Original.csv.csv', index=False)
+                collected_df.to_csv('original/20230909_021-025_Desc_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -499,6 +515,8 @@ class EbayScraper:
                                     for theme in themes:
                                         if theme['listings'][0]['listingId'] == listingId:
                                             product[data] = theme['listings'][0]['__prp']['condition']['textSpans'][0]['text']
+                                elif data == 'Google Shopping / Custom Label 1':
+                                    product[data] = 'B71'
                                 elif data == 'Image Src':
                                     for theme in themes:
                                         if theme['listings'][0]['listingId'] == listingId:
@@ -659,6 +677,8 @@ class EbayScraper:
                                 product[data] = float(theme['listings'][0]['displayPrice']['value']['value'])
                             elif data == 'Google Shopping / Condition':
                                 product[data] = theme['listings'][0]['__prp']['condition']['textSpans'][0]['text']
+                            elif data == 'Google Shopping / Custom Label 1':
+                                product[data] = 'B71'
                             elif data == 'Image Src':
                                 product[data] = theme['listings'][0]['image']['URL']
                             elif data == 'Published':
@@ -767,10 +787,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/20230907_011-015_Desc_Original.csv.csv'):
-                collected_df.to_csv('original/20230907_011-015_Desc_Original.csv.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/20230909_021-025_Desc_Original.csv'):
+                collected_df.to_csv('original/20230909_021-025_Desc_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/20230907_011-015_Desc_Original.csv.csv', index=False)
+                collected_df.to_csv('original/20230909_021-025_Desc_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -856,7 +876,7 @@ class EbayScraper:
 
         if json_data:
             json_obj = json.loads(json_data)
-            print(json.dumps(json_obj, indent=2))
+            # print(json.dumps(json_obj, indent=2))
 
         try:
             pic_index = json_obj['o']['w'][0][2]['model']['modules']['MSKU']['menuItemPictureIndexMap'][str(option_value)]
@@ -918,10 +938,10 @@ class EbayScraper:
         return body
 
     def get_product_link(self):
-        pg = 11
+        pg = 21
         product_links = []
         retries = 0
-        while pg < 16 and retries < 3:
+        while pg < 26 and retries < 3:
             try:
                 url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={str(pg)}&_sop=16&&_fcid=1'
                 html = self.fetch(url)
@@ -981,8 +1001,8 @@ class EbayScraper:
         return str(temp_dict)
 
     def run(self):
-        # urls = self.get_product_link()
-        urls = ['https://www.ebay.com/itm/354451908574?hash=item5286fae7de:g:KTQAAOSwmt1jZP3B&var=623852415484']
+        urls = self.get_product_link()
+        # urls = ['https://www.ebay.com/itm/325327896398?hash=item4bbf0dbf4e:g:0tEAAOSwcV5jEhzM']
         responses = [self.fetch(url) for url in urls]
         datas = [self.get_data(response) for response in responses]
 
