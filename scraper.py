@@ -925,6 +925,7 @@ class EbayScraper:
         elements_text = []
         if len(tree.css_first('body').text()) <= 8000:
             body = tree.css_first('body').text()
+
         else:
             elements = tree.css("div")
             for element in elements:

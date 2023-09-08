@@ -73,6 +73,7 @@ class TransformEbay:
     def openai_edit_title(self, title, description):
         if pd.isna(title):
             result = title
+
         else:
             # system_template = """As a content writer for an e-commerce site, Your goal is to create an attractive and SEO-friendly product title."""
 
