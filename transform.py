@@ -79,7 +79,7 @@ class TransformEbay:
 
             # human_template = """Generate a product title within 70 characters or less for our ride-on toy that evokes a sense of adventure and playfulness without using initiation words such as 'embark,' 'unleash,' etc. Remove any information about payment, return, feedback, company background, warranty, shipping, marketplace references, and ASIN number. Draw inspiration from the following description {current_description} while maintaining a adventurous and playful tone. Utilize vivid language, unique phrasing, synonyms, and alternative sentence structures to avoid plagiarism from this {title}. Ensure there is no exclamation mark in the end of the title. """
 
-            system_template = """You are SEO specialist in ride-on toy company named MagicCars. Your job is diversify provided title into the new one so it is not considered as duplicate content. Remove all information about shipping and return. Remove any special character. Your ultimate goal is to create an engaging and SEO-friendly product title"""
+            system_template = """You are SEO specialist in ride-on toy company. Your job is diversify provided title into the new one so it is not considered as duplicate content. Remove all information about shipping and return. Remove any special character. Your ultimate goal is to create an engaging and SEO-friendly product title"""
 
             human_template = """Please diversify this {title} into the new one. Answer:"""
 
@@ -139,7 +139,7 @@ class TransformEbay:
         return result
 
     def run(self):
-        file_name = '20230908_016-020_Desc'
+        file_name = '20230909_026-030_Desc.csv'
         df = pd.read_csv(
             f'original/{file_name}_Original.csv'
             # 'cek_Original.csv'
@@ -164,9 +164,33 @@ class TransformEbay:
         try:
             item_specs_data = json.loads(item_specs)
             result = item_specs_data['Brand']
-        except:
-            result = 'No Brand'
+        except Exception as e:
+            print(e)
+            result = ''
         return result
+
+    def extract_weight(self, item_specs):
+        item_specs = item_specs.replace("\'", "\"")
+        try:
+            item_specs_data = json.loads(item_specs)
+            weight = item_specs_data['Weight Capacity']
+            pattern = r'(\d+)\s*(\S+)'
+            match = re.match(pattern, weight)
+            if match:
+                weight_value = int(match.group(1))
+                weight_unit = match.group(2)
+                weight_info = {
+                    'weight_value': weight_value,
+                    'weight_unit': weight_unit
+                }
+                result = weight_info
+            else:
+                result = ''
+        except Exception as e:
+            print(e)
+            result = ''
+        return result
+
 
 if __name__ == '__main__':
     t = TransformEbay()

@@ -94,6 +94,7 @@ class EbayScraper:
         }
 
         second_options = ['None - $0', '1 year - $89']
+        third_option = ['None - $0', 'Custom license plate - $39']
 
         # check product availability and seller feedbacks
         if left_panel and feedbacks >= 20:
@@ -106,6 +107,7 @@ class EbayScraper:
                 # Generate combinations of options
                 for i, first_option in enumerate(first_options[1::]):
                     for j, second_option in enumerate(second_options):
+                        for k, third_option in enumerate(third_option):
                         option_value = first_option.attributes.get('value')
                         product = empty_product.copy()
                         if i == 0 and j == 0:
@@ -418,10 +420,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/20230909_021-025_Desc_Original.csv'):
-                collected_df.to_csv('original/20230909_021-025_Desc_Original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/20230909_031-035_Desc_Original.csv'):
+                collected_df.to_csv('original/20230909_031-035_Desc_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/20230909_021-025_Desc_Original.csv', index=False)
+                collected_df.to_csv('original/20230909_031-035_Desc_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -787,10 +789,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/20230909_021-025_Desc_Original.csv'):
-                collected_df.to_csv('original/20230909_021-025_Desc_Original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/20230909_031-035_Desc_Original.csv'):
+                collected_df.to_csv('original/20230909_031-035_Desc_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/20230909_021-025_Desc_Original.csv', index=False)
+                collected_df.to_csv('original/20230909_031-035_Desc_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -939,10 +941,10 @@ class EbayScraper:
         return body
 
     def get_product_link(self):
-        pg = 21
+        pg = 31
         product_links = []
         retries = 0
-        while pg < 26 and retries < 3:
+        while pg < 36 and retries < 3:
             try:
                 url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={str(pg)}&_sop=16&&_fcid=1'
                 html = self.fetch(url)
