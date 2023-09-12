@@ -27,6 +27,25 @@ class TransformEbay:
 
         return result
 
+    def quality_check(self, description):
+        if "<li>" in description:
+            pass
+        else:
+            description = description.replace('\n', '<br/>')
+        description = description.replace('Â', '')
+        description = description.replace('€“', '-')
+        description = description.replace('€™', "'")
+        description = description.replace('€', '"')
+        return description
+
+        # Define a regular expression pattern to match paragraphs containing the word "warranty"
+        # pattern = r'<p>.*?warranty.*?</p>'
+
+        # Use re.sub() to remove matching paragraphs
+        # description_no_warranty = re.sub(pattern, '', description, flags=re.IGNORECASE)
+
+
+
     def openai_edit(self, title, description, additional_spec):
         try:
             if pd.isna(description):
@@ -47,7 +66,7 @@ class TransformEbay:
 
     # Experiment
                 system_template = """
-                You are an SEO specialist in a ride-on toy company named MagicCars. Your task is to enhance the provided product description for the given product title by enriching it with the provided additional specifications. Infuse the description with an adventurous and playful tone that embodies the spirit of outdoor fun and imaginative exploration. Include all the provided additional specifications, key features, and product specifications. Remove all special characters. Remove any information regarding payment, return, feedback, company background, warranty, shipping, contact us. Remove information regarding marketplace platform such as eBay, Amazon, etc. Remove information regarding health issue warning such as cancer, reproductive harm, birth defects. In the opening paragraph, Always use the product title itself without any word before it except "The". Always incorporate the phrase 'ride-on' seamlessly into the description. Utilize vivid language, unique phrasing, synonyms, and alternative sentence structures to consistently create a one-of-a-kind product description. Use imperial metrics for all measurement units and convert their values where necessary. Present the output as a well-structured paragraph that constantly including all key features and specifications in bullet points. Your ultimate goal is to create an engaging and SEO-friendly product description.
+                You are an SEO specialist in a ride-on toy company. Your task is to enhance the provided product description for the given product title by enriching it with the provided additional specifications. Infuse the description with an adventurous and playful tone that embodies the spirit of outdoor fun and imaginative exploration. Include all the provided additional specifications, key features, and product specifications. Remove all special characters. Remove any information regarding payment, return, feedback, company background, warranty, shipping, contact us. Remove information regarding marketplace platform such as eBay, Amazon, etc. Remove information regarding health issue warning such as cancer, reproductive harm, birth defects. In the opening paragraph, Always use the product title itself without any word before it except "The". Always incorporate the phrase 'ride-on' seamlessly into the description. Utilize vivid language, unique phrasing, synonyms, and alternative sentence structures to consistently create a one-of-a-kind product description. Use imperial metrics for all measurement units and convert their values where necessary. Avoid to put note in the description. Present the output in HTML format with a well-structured parahgraph that constantly including all key features and specifications in bullet points. Your ultimate goal is to create an engaging and SEO-friendly product description.
                 """
 
                 human_template = """
@@ -79,7 +98,7 @@ class TransformEbay:
 
             # human_template = """Generate a product title within 70 characters or less for our ride-on toy that evokes a sense of adventure and playfulness without using initiation words such as 'embark,' 'unleash,' etc. Remove any information about payment, return, feedback, company background, warranty, shipping, marketplace references, and ASIN number. Draw inspiration from the following description {current_description} while maintaining a adventurous and playful tone. Utilize vivid language, unique phrasing, synonyms, and alternative sentence structures to avoid plagiarism from this {title}. Ensure there is no exclamation mark in the end of the title. """
 
-            system_template = """You are SEO specialist in ride-on toy company. Your job is diversify provided title into the new one so it is not considered as duplicate content. Remove all information about shipping and return. Remove any special character. Your ultimate goal is to create an engaging and SEO-friendly product title"""
+            system_template = """You are SEO specialist in ride-on toy company. Your job is diversify provided title into the new one so it is not considered as duplicate content. Remove all information about shipping and return. Ensure that the new title is clear and directly related to the product, without adding unnecessary words like "diversified," "SEO-friendly," or any other filler words. Your ultimate goal is to create an engaging and SEO-friendly product title"""
 
             human_template = """Please diversify this {title} into the new one. Answer:"""
 
@@ -107,6 +126,7 @@ class TransformEbay:
         df.to_csv('temp/temp2.csv', index=False)
         threshold = len(df) * 0.7
         df['Body (HTML)'] = df.apply(lambda x: self.replace_rideon(x['Body (HTML)']) if x.name < threshold else self.replace_rideon2(x['Body (HTML)']), axis=1)
+        df['Body (HTML)'] = df['Body (HTML)'].apply(self.quality_check)
         df.drop(columns=['text_desc'], inplace=True)
 
     def transform_title(self, df):
@@ -129,17 +149,24 @@ class TransformEbay:
         choosen_sub_word = choice(subtitute_words)
         try:
             count_of_rideon = description.count('ride-on')
-            if count_of_rideon > 1:
-                stage1 = description.replace('ride-on', f'<a href=https://www.magiccars.com>{choosen_sub_word}</a>', 2)
-                result = stage1.replace(f'<a href=https://www.magiccars.com>{choosen_sub_word}</a>', 'ride-on', 1)
+            if 'remote' in description.lower():
+                if count_of_rideon > 1:
+                    stage1 = description.replace('ride-on', f'<a href=https://www.magiccars.com>{choosen_sub_word}</a>', 2)
+                    result = stage1.replace(f'<a href=https://www.magiccars.com>{choosen_sub_word}</a>', 'ride-on', 1)
+                else:
+                    result = description.replace('ride-on', f'<a href=https://www.magiccars.com>{choosen_sub_word}</a>', 1)
             else:
-                result = description.replace('ride-on', f'<a href=https://www.magiccars.com>{choosen_sub_word}</a>', 1)
+                if count_of_rideon > 1:
+                    stage1 = description.replace('ride-on', f'<a href=https://www.magiccars.com>ride-on</a>', 2)
+                    result = stage1.replace(f'<a href=https://www.magiccars.com>ride-on</a>', 'ride-on', 1)
+                else:
+                    result = description.replace('ride-on', f'<a href=https://www.magiccars.com>ride-on</a>', 1)
         except:
             result = description
         return result
 
     def run(self):
-        file_name = '20230909_026-030_Desc.csv'
+        file_name = '20230912_031-035_Desc'
         df = pd.read_csv(
             f'original/{file_name}_Original.csv'
             # 'cek_Original.csv'
@@ -173,7 +200,7 @@ class TransformEbay:
         item_specs = item_specs.replace("\'", "\"")
         try:
             item_specs_data = json.loads(item_specs)
-            weight = item_specs_data['Weight Capacity']
+            weight = item_specs_data['Item Weight']
             pattern = r'(\d+)\s*(\S+)'
             match = re.match(pattern, weight)
             if match:
