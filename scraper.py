@@ -35,6 +35,7 @@ class EbayScraper:
                     '154.12.112.245:8800',
                     '154.12.115.234:8800'])
     proxy_index:int = 0
+    product_cat: str = ''
 
     def fetch(self, url):
         headers = {
@@ -82,6 +83,14 @@ class EbayScraper:
 
         return result
 
+    def get_UPC(self):
+        UPCS = pd.read_csv('GasScooters30KUPC.csv')
+        Available_UPC = UPCS[UPCS['status'] == 'available'].iloc[0]
+        UPCS.iloc[Available_UPC.name, 1] = 'used'
+        UPCS.to_csv('GasScooters30KUPC.csv', index=False)
+
+        return Available_UPC['UPC']
+
     def first_format(self, tree):
         print('first_format')
         try:
@@ -116,7 +125,7 @@ class EbayScraper:
             'Google Shopping / Custom Label 1': '', 'Google Shopping / Custom Label 2': '',
             'Google Shopping / Custom Label 3': '', 'Google Shopping / Custom Label 4': '', 'Variant Image': '',
             'Variant Weight Unit': '', 'Variant Tax Code': '', 'Cost per item': '', 'Price / International': '',
-            'Compare At Price / International': '', 'Status': '', 'Item_Desc': {}, 'Shipping': ''
+            'Compare At Price / International': '', 'Status': '', 'Item_Desc': {}, 'Shipping': '', 'Seller': '', 'Location':''
         }
 
         second_options = ['None - $0', '1 year - $89']
@@ -157,14 +166,24 @@ class EbayScraper:
                                         # product[data] = float(
                                         #     re.findall(
                                         #         r"\d+\.\d+", left_panel.css('div.x-price-primary')[-1].text(strip=True))[0])
-                                        product[data] = float(re.search(r'\$\s*([\d,]+(?:\.\d+)?)', left_panel.css(
+                                        variant_price = float(re.search(r'\$\s*([\d,]+(?:\.\d+)?)', left_panel.css(
                                             'div.x-price-primary')[-1].text(strip=True).replace(',', '')).group(
                                             1))
+                                        if variant_price > 100.00:
+                                            product[data] = variant_price + 200
+                                            self.product_cat = 'B71'
+                                        else:
+                                            product[data] = variant_price * 1.75
+                                            self.product_cat = 'bprts'
+                                    elif data == 'Google Shopping / MPN':
+                                        product[data] = self.get_UPC()
+                                    elif data == 'Variant Barcode':
+                                        product[data] = self.get_UPC()
                                     elif data == 'Google Shopping / Condition':
                                         product[data] = left_panel.css_first('span.ux-icon-text__text > span.clipped').text(
                                             strip=True)
                                     elif data == 'Google Shopping / Custom Label 1':
-                                        product[data] = 'B71'
+                                        product[data] = self.product_cat
                                     elif data == 'Image Src':
                                         product[data] = self.get_variant_image(tree, option_value=option_value)
                                         if product[data] == '':
@@ -180,7 +199,7 @@ class EbayScraper:
                                     elif data == 'Tags':
                                         product[data] = 'B71'
                                     elif data == 'Published':
-                                        product[data] = False
+                                        product[data] = True
                                     # elif data == 'Option1 Name':
                                     #     product[data] = select_box[-1].attributes.get('selectboxlabel')
                                     elif data == 'Option1 Name':
@@ -227,7 +246,7 @@ class EbayScraper:
                                     elif data == 'Variant Fulfillment Service':
                                         product[data] = 'manual'
                                     elif data == 'Variant Compare At Price':
-                                        product[data] = product['Variant Price']
+                                        product[data] = product['Variant Price'] * 1.3
                                     elif data == 'Variant Requires Shipping':
                                         product[data] = True
                                     elif data == 'Taxable':
@@ -254,6 +273,15 @@ class EbayScraper:
                                             product[data] = shipping_panel.css_first('span.ux-textspans.ux-textspans--BOLD').text(strip=True)
                                         except:
                                             product[data] = ''
+                                    elif data == 'Seller':
+                                        product[data] = tree.css_first(
+                                            'h2.d-stores-info-categories__container__info__section__title').attributes.get(
+                                            'title')
+                                    elif data == 'Location':
+                                        location_parent_element = tree.css_first(
+                                            'div.ux-labels-values.col-12.ux-labels-values--shipping')
+                                        product[data] = location_parent_element.css_first(
+                                            'span.ux-textspans.ux-textspans--SECONDARY').text(strip=True)
                                 product_df = pd.DataFrame(product, index=[0])
                                 collected_df = product_df.copy()
                                 main_images = self.get_main_product_images(tree)
@@ -286,14 +314,21 @@ class EbayScraper:
                                                 'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > span.ux-textspans.ux-textspans--BOLD').text(
                                                 strip=True)
                                     elif data == 'Variant Price':
+                                        variant_price = float(self.get_price(tree, option_value)['price'])
+                                        if variant_price > 100.00:
+                                            variant_price_add = variant_price + 200.00
+                                            self.product_cat = 'B71'
+                                        else:
+                                            variant_price_add = variant_price * 1.75
+                                            self.product_cat = 'bprts'
                                         if j == 0 and k == 0:
-                                            product[data] = float(self.get_price(tree, option_value)['price'])
+                                            product[data] = variant_price_add
                                         elif j != 0 and k == 0:
-                                            product[data] = float(self.get_price(tree, option_value)['price']) + 89.00
+                                            product[data] = variant_price_add + 89.00
                                         elif j == 0 and k != 0:
-                                            product[data] = float(self.get_price(tree, option_value)['price']) + 39.00
+                                            product[data] = variant_price_add + 39.00
                                         elif j != 0 and k != 0:
-                                            product[data] = float(self.get_price(tree, option_value)['price']) + 39.00 + 89.00
+                                            product[data] = variant_price_add + 39.00 + 89.00
                                     elif data == 'Option1 Value':
                                         product[data] = self.standardize(first_option.text())
                                     elif data == 'Option2 Value':
@@ -330,7 +365,7 @@ class EbayScraper:
                                     elif data == 'Variant Fulfillment Service':
                                         product[data] = 'manual'
                                     elif data == 'Variant Compare At Price':
-                                        product[data] = product['Variant Price']
+                                        product[data] = product['Variant Price'] * 1.3
                                     elif data == 'Variant Requires Shipping':
                                         product[data] = True
                                     elif data == 'Taxable':
@@ -345,6 +380,10 @@ class EbayScraper:
                                         product[data] = 'lb'
                                     elif data == 'Status':
                                         product[data] = 'draft'
+                                    elif data == 'Google Shopping / MPN':
+                                        product[data] = self.get_UPC()
+                                    elif data == 'Variant Barcode':
+                                        product[data] = self.get_UPC()
                                 product_df = pd.DataFrame(product, index=[0])
                                 collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
@@ -374,14 +413,25 @@ class EbayScraper:
                                     # product[data] = float(
                                         # re.findall(
                                         #     r"\d+\.\d+", left_panel.css('div.x-price-primary')[-1].text(strip=True))[0])
-                                    product[data] = float(re.search(r'\$\s*([\d,]+(?:\.\d+)?)', left_panel.css(
+                                    variant_price = float(re.search(r'\$\s*([\d,]+(?:\.\d+)?)', left_panel.css(
                                         'div.x-price-primary')[-1].text(strip=True).replace(',', '')).group(
                                         1))
+                                    if variant_price > 100.00:
+                                        product[data] = variant_price + 200.00
+                                        self.product_cat = 'B71'
+                                    else:
+                                        product[data] = variant_price * 1.75
+                                        self.product_cat = 'bprts'
+                                    # x = self.get_variant_image(tree, 0)
+                                elif data == 'Google Shopping / MPN':
+                                    product[data] = self.get_UPC()
+                                elif data == 'Variant Barcode':
+                                    product[data] = self.get_UPC()
                                 elif data == 'Google Shopping / Condition':
                                     product[data] = left_panel.css_first('span.ux-icon-text__text > span.clipped').text(
                                         strip=True)
                                 elif data == 'Google Shopping / Custom Label 1':
-                                    product[data] = 'B71'
+                                    product[data] = self.product_cat
                                 elif data == 'Image Src':
                                     try:
                                         product[data] = picture_panel.css_first(
@@ -392,7 +442,7 @@ class EbayScraper:
                                 elif data == 'Tags':
                                     product[data] = 'B71'
                                 elif data == 'Published':
-                                    product[data] = False
+                                    product[data] = True
                                 elif data == 'Option1 Name':
                                     product[data] = 'Warranty'
                                 elif data == 'Option1 Value':
@@ -430,7 +480,7 @@ class EbayScraper:
                                 elif data == 'Variant Fulfillment Service':
                                     product[data] = 'manual'
                                 elif data == 'Variant Compare At Price':
-                                    product[data] = product['Variant Price']
+                                    product[data] = product['Variant Price'] * 1.3
                                 elif data == 'Variant Requires Shipping':
                                     product[data] = True
                                 elif data == 'Taxable':
@@ -453,6 +503,11 @@ class EbayScraper:
                                             'span.ux-textspans.ux-textspans--BOLD').text(strip=True)
                                     except:
                                         product[data] = ''
+                                elif data == 'Seller':
+                                    product[data] = tree.css_first('h2.d-stores-info-categories__container__info__section__title').attributes.get('title')
+                                elif data == 'Location':
+                                    location_parent_element = tree.css_first('div.ux-labels-values.col-12.ux-labels-values--shipping')
+                                    product[data] = location_parent_element.css_first('span.ux-textspans.ux-textspans--SECONDARY').text(strip=True)
                                 product_df = pd.DataFrame(product, index=[0])
                                 collected_df = product_df.copy()
 
@@ -497,14 +552,20 @@ class EbayScraper:
                                     variant_price = float(re.search(r'\$\s*([\d,]+(?:\.\d+)?)', left_panel.css(
                                         'div.x-price-primary')[-1].text(strip=True).replace(',', '')).group(
                                         1))
+                                    if variant_price > 100.00:
+                                        variant_price_add = variant_price + 200.00
+                                        self.product_cat = 'B71'
+                                    else:
+                                        variant_price_add = variant_price * 1.75
+                                        self.product_cat = 'bprts'
                                     if j == 0 and k == 0:
-                                        product[data] = variant_price
+                                        product[data] = variant_price_add
                                     elif j != 0 and k == 0:
-                                        product[data] = variant_price + 89.00
+                                        product[data] = variant_price_add + 89.00
                                     elif j == 0 and k != 0:
-                                        product[data] = variant_price + 39.00
+                                        product[data] = variant_price_add + 39.00
                                     elif j != 0 and k != 0:
-                                        product[data] = variant_price + 39.00 + 89.00
+                                        product[data] = variant_price_add + 39.00 + 89.00
                                 elif data == 'Option1 Value':
                                     product[data] = second_option
                                 elif data == 'Option2 Value':
@@ -541,7 +602,7 @@ class EbayScraper:
                                 elif data == 'Variant Fulfillment Service':
                                     product[data] = 'manual'
                                 elif data == 'Variant Compare At Price':
-                                    product[data] = product['Variant Price']
+                                    product[data] = product['Variant Price'] * 1.3
                                 elif data == 'Variant Requires Shipping':
                                     product[data] = True
                                 elif data == 'Taxable':
@@ -550,14 +611,18 @@ class EbayScraper:
                                     product[data] = 'lb'
                                 elif data == 'Status':
                                     product[data] = 'draft'
+                                elif data == 'Google Shopping / MPN':
+                                    product[data] = self.get_UPC()
+                                elif data == 'Variant Barcode':
+                                    product[data] = self.get_UPC()
                             product_df = pd.DataFrame(product, index=[0])
                             collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/20230913_036-040_Desc_Original.csv'):
-                collected_df.to_csv('original/20230913_036-040_Desc_Original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/cek_Original.csv'):
+                collected_df.to_csv('original/cek_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/20230913_036-040_Desc_Original.csv', index=False)
+                collected_df.to_csv('original/cek_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -590,7 +655,7 @@ class EbayScraper:
             'Google Shopping / Custom Label 1': '', 'Google Shopping / Custom Label 2': '',
             'Google Shopping / Custom Label 3': '', 'Google Shopping / Custom Label 4': '', 'Variant Image': '',
             'Variant Weight Unit': '', 'Variant Tax Code': '', 'Cost per item': '', 'Price / International': '',
-            'Compare At Price / International': '', 'Status': '', 'Item_Desc': {}, 'Shipping': ''
+            'Compare At Price / International': '', 'Status': '', 'Item_Desc': {}, 'Shipping': '', 'Seller': '', 'Location':''
         }
 
         second_options = ['None - $0', '1 year - $89']
@@ -641,24 +706,28 @@ class EbayScraper:
                                         for theme in themes:
                                             if theme['listings'][0]['listingId'] == listingId:
                                                 product[data] = float(
-                                                    theme['listings'][0]['displayPrice']['value']['value'])
+                                                    theme['listings'][0]['displayPrice']['value']['value']) + 200.00
                                     else:
                                         for theme in themes:
                                             if theme['listings'][0]['listingId'] == listingId:
                                                 product[data] = float(
-                                                    theme['listings'][0]['displayPrice']['value']['value']) + 89.00
+                                                    theme['listings'][0]['displayPrice']['value']['value']) + 89.00 + 200.00
+                                elif data == 'Google Shopping / MPN':
+                                    product[data] = self.get_UPC()
+                                elif data == 'Variant Barcode':
+                                    product[data] = self.get_UPC()
                                 elif data == 'Google Shopping / Condition':
                                     for theme in themes:
                                         if theme['listings'][0]['listingId'] == listingId:
                                             product[data] = theme['listings'][0]['__prp']['condition']['textSpans'][0]['text']
                                 elif data == 'Google Shopping / Custom Label 1':
-                                    product[data] = 'B71'
+                                    product[data] = self.product_cat
                                 elif data == 'Image Src':
                                     for theme in themes:
                                         if theme['listings'][0]['listingId'] == listingId:
                                             product[data] = theme['listings'][0]['image']['URL']
                                 elif data == 'Published':
-                                    product[data] = False
+                                    product[data] = True
                                 elif data == 'Option1 Name':
                                     product[data] = 'Theme'
                                 elif data == 'Option1 Value':
@@ -679,7 +748,7 @@ class EbayScraper:
                                 elif data == 'Variant Fulfillment Service':
                                     product[data] = 'manual'
                                 elif data == 'Variant Compare At Price':
-                                    product[data] = product['Variant Price']
+                                    product[data] = product['Variant Price'] * 1.3
                                 elif data == 'Variant Requires Shipping':
                                     product[data] = True
                                 elif data == 'Taxable':
@@ -704,6 +773,11 @@ class EbayScraper:
                                         product[data] = shipping_panel.css_first('span.ux-textspans.ux-textspans--BOLD').text(strip=True)
                                     except:
                                         product[data] = ''
+                                elif data == 'Seller':
+                                    product[data] = tree.css_first('h2.d-stores-info-categories__container__info__section__title').attributes.get('title')
+                                elif data == 'Location':
+                                    location_parent_element = tree.css_first('div.ux-labels-values.col-12.ux-labels-values--shipping')
+                                    product[data] = location_parent_element.css_first('span.ux-textspans.ux-textspans--SECONDARY').text(strip=True)
                             product_df = pd.DataFrame(product, index=[0])
                             collected_df = product_df.copy()
                             main_images = self.get_main_product_images2(themes)
@@ -739,23 +813,23 @@ class EbayScraper:
                                             for theme in themes:
                                                 if theme['listings'][0]['listingId'] == listingId:
                                                     product[data] = float(
-                                                        theme['listings'][0]['displayPrice']['value']['value'])
+                                                        theme['listings'][0]['displayPrice']['value']['value']) + 200.00
                                         else:
                                             for theme in themes:
                                                 if theme['listings'][0]['listingId'] == listingId:
                                                     product[data] = float(
-                                                        theme['listings'][0]['displayPrice']['value']['value']) + 89.00
+                                                        theme['listings'][0]['displayPrice']['value']['value']) + 89.00 + 200.00
                                     except:
                                         if j == 0:
                                             for theme in themes:
                                                 if theme['listings'][0]['listingId'] == listingId:
                                                     product[data] = float(
-                                                        theme['listings'][0]['logisticsCost']['value']['value'])
+                                                        theme['listings'][0]['logisticsCost']['value']['value']) + 200.00
                                         else:
                                             for theme in themes:
                                                 if theme['listings'][0]['listingId'] == listingId:
                                                     product[data] = float(
-                                                        theme['listings'][0]['logisticsCost']['value']['value']) + 89.00
+                                                        theme['listings'][0]['logisticsCost']['value']['value']) + 89.00 + 200.00
                                 elif data == 'Option1 Value':
                                     product[data] = first_option.css_first('span.theme-title').text(strip=True)
                                 elif data == 'Option2 Value':
@@ -772,7 +846,7 @@ class EbayScraper:
                                 elif data == 'Variant Fulfillment Service':
                                     product[data] = 'manual'
                                 elif data == 'Variant Compare At Price':
-                                    product[data] = product['Variant Price']
+                                    product[data] = product['Variant Price'] * 1.3
                                 elif data == 'Variant Requires Shipping':
                                     product[data] = True
                                 elif data == 'Taxable':
@@ -785,6 +859,10 @@ class EbayScraper:
                                     product[data] = 'lb'
                                 elif data == 'Status':
                                     product[data] = 'draft'
+                                elif data == 'Google Shopping / MPN':
+                                    product[data] = self.get_UPC()
+                                elif data == 'Variant Barcode':
+                                    product[data] = self.get_UPC()
                             product_df = pd.DataFrame(product, index=[0])
                             collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
@@ -810,15 +888,19 @@ class EbayScraper:
                             elif data == 'Vendor':
                                 product[data] = f"{product['Handle']}"
                             elif data == 'Variant Price':
-                                product[data] = float(theme['listings'][0]['displayPrice']['value']['value'])
+                                product[data] = float(theme['listings'][0]['displayPrice']['value']['value']) + 200.00
+                            elif data == 'Google Shopping / MPN':
+                                product[data] = self.get_UPC()
+                            elif data == 'Variant Barcode':
+                                product[data] = self.get_UPC()
                             elif data == 'Google Shopping / Condition':
                                 product[data] = theme['listings'][0]['__prp']['condition']['textSpans'][0]['text']
                             elif data == 'Google Shopping / Custom Label 1':
-                                product[data] = 'B71'
+                                product[data] = self.product_cat
                             elif data == 'Image Src':
                                 product[data] = theme['listings'][0]['image']['URL']
                             elif data == 'Published':
-                                product[data] = False
+                                product[data] = True
                             elif data == 'Option1 Name':
                                 product[data] = 'Warranty'
                             elif data == 'Option1 Value':
@@ -839,7 +921,7 @@ class EbayScraper:
                             elif data == 'Variant Fulfillment Service':
                                 product[data] = 'manual'
                             elif data == 'Variant Compare At Price':
-                                product[data] = product['Variant Price']
+                                product[data] = product['Variant Price'] * 1.3
                             elif data == 'Variant Requires Shipping':
                                 product[data] = True
                             elif data == 'Taxable':
@@ -864,6 +946,15 @@ class EbayScraper:
                                         'span.ux-textspans.ux-textspans--BOLD').text(strip=True)
                                 except:
                                     product[data] = ''
+                            elif data == 'Seller':
+                                product[data] = tree.css_first(
+                                    'h2.d-stores-info-categories__container__info__section__title').attributes.get(
+                                    'title')
+                            elif data == 'Location':
+                                location_parent_element = tree.css_first(
+                                    'div.ux-labels-values.col-12.ux-labels-values--shipping')
+                                product[data] = location_parent_element.css_first(
+                                    'span.ux-textspans.ux-textspans--SECONDARY').text(strip=True)
                         product_df = pd.DataFrame(product, index=[0])
                         collected_df = product_df.copy()
                         main_images = self.get_main_product_images2(theme)
@@ -894,7 +985,7 @@ class EbayScraper:
                                             if 'eBay Product ID' in description.text(strip=True):
                                                 product[data] = description.css_first('div.s-value').text(strip=True)
                             elif data == 'Variant Price':
-                                product[data] = float(theme['listings'][0]['displayPrice']['value']['value']) + 89.00
+                                product[data] = float(theme['listings'][0]['displayPrice']['value']['value']) + 89.00 + 200.00
                             elif data == 'Option1 Value':
                                 product[data] = second_option
                             elif data == 'Variant SKU':
@@ -908,7 +999,7 @@ class EbayScraper:
                             elif data == 'Variant Fulfillment Service':
                                 product[data] = 'manual'
                             elif data == 'Variant Compare At Price':
-                                product[data] = product['Variant Price']
+                                product[data] = product['Variant Price'] * 1.3
                             elif data == 'Variant Requires Shipping':
                                 product[data] = True
                             elif data == 'Taxable':
@@ -919,14 +1010,18 @@ class EbayScraper:
                                 product[data] = 'lb'
                             elif data == 'Status':
                                 product[data] = 'draft'
+                            elif data == 'Google Shopping / MPN':
+                                product[data] = self.get_UPC()
+                            elif data == 'Variant Barcode':
+                                product[data] = self.get_UPC()
                         product_df = pd.DataFrame(product, index=[0])
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/20230913_036-040_Desc_Original.csv'):
-                collected_df.to_csv('original/20230913_036-040_Desc_Original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/cek_Original.csv'):
+                collected_df.to_csv('original/cek_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/20230913_036-040_Desc_Original.csv', index=False)
+                collected_df.to_csv('original/cek_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -979,7 +1074,7 @@ class EbayScraper:
 
         if json_data:
             json_obj = json.loads(json_data)
-            # print(json.dumps(json_obj, indent=2))
+            print(json.dumps(json_obj, indent=2))
 
         var_id = json_obj['o']['w'][0][2]['model']['modules']['MSKU']['menuItemMap'][str(option_value)]['matchingVariationIds'][0]
         price = json_obj['o']['w'][0][2]['model']['modules']['MSKU']['variationsMap'][str(var_id)]['binModel']['price']['value']['value']
@@ -1004,6 +1099,7 @@ class EbayScraper:
     def get_variant_image(self, tree, option_value):
         script = tree.css('script')
         for item in script:
+            print(item.text())
             if 'MSKU' in item.text():
                 temp = item.text()
                 break
@@ -1012,7 +1108,7 @@ class EbayScraper:
 
         if json_data:
             json_obj = json.loads(json_data)
-            # print(json.dumps(json_obj, indent=2))
+            print(json.dumps(json_obj, indent=2))
 
         try:
             pic_index = json_obj['o']['w'][0][2]['model']['modules']['MSKU']['menuItemPictureIndexMap'][str(option_value)]
@@ -1138,8 +1234,8 @@ class EbayScraper:
         return str(temp_dict)
 
     def run(self):
-        urls = self.get_product_link()
-        # urls = ['https://www.ebay.com/itm/285422766555?hash=item427485c9db:g:r70AAOSwoJ5k07GK']
+        # urls = self.get_product_link()
+        urls = ['https://www.ebay.com/itm/364285868828']
         responses = [self.fetch(url) for url in urls]
         datas = [self.get_data(response) for response in responses]
 
