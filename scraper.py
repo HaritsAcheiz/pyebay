@@ -8,54 +8,48 @@ import pandas as pd
 import re
 from dotenv import load_dotenv
 from typing import List
+from random import choice
 
 load_dotenv()
 proxy = os.getenv('PROXY')
-proxies = ['192.126.196.17:8800',
-                    '192.126.246.18:8800',
-                    '154.12.115.197:8800',
-                    '154.12.115.13:8800',
-                    '154.12.115.67:8800',
-                    '192.126.246.210:8800',
-                    '154.12.112.49:8800',
-                    '192.126.196.78:8800',
-                    '154.12.112.245:8800',
-                    '154.12.115.234:8800']
 
 @dataclass
 class EbayScraper:
-    proxies: List = field(default_factory=lambda: ['192.126.196.17:8800',
-                    '192.126.246.18:8800',
-                    '154.12.115.197:8800',
-                    '154.12.115.13:8800',
-                    '154.12.115.67:8800',
-                    '192.126.246.210:8800',
-                    '154.12.112.49:8800',
-                    '192.126.196.78:8800',
-                    '154.12.112.245:8800',
-                    '154.12.115.234:8800'])
+    proxies: List = field(default_factory=lambda: [
+        '192.126.196.107:8800', '192.126.245.45:8800', '196.51.221.191:8800', '196.51.221.57:8800', '192.126.245.97:8800',
+        '192.126.196.109:8800', '192.126.245.135:8800', '192.126.196.49:8800', '192.126.245.252:8800', '196.51.217.219:8800']
+)
     proxy_index:int = 0
     product_cat: str = ''
 
     def fetch(self, url):
-        headers = {
-            'user-agent': 'Mozilla / 5.0(Windows NT 10.0; WOW64; rv: 52.0) Gecko / 20100101 Firefox / 52.0'
-        }
 
         retries = 0
         while retries < 10:
-            if self.proxy_index >= 10:
+            if self.proxy_index >= 3:
                 self.proxy_index = 0
             proxy = self.proxies[self.proxy_index]
+            useragents = ['Mozilla / 5.0(Windows NT 10.0; WOW64; rv: 52.0) Gecko / 20100101 Firefox / 52.0',
+                          'Mozilla 5.0 (Windows NT 10.0; Win32; x86; rv:88.0) Gecko/20100101 Firefox/88.0.1',
+                          'Mozilla 5.0 (Windows NT 10.0; Win32; x86; rv;88.0) Gecko/20100101 Firefox/88.0',
+                          'Mozilla 5.0 (Windows NT 10.0; Win32; x86; rv;88.0.1) Gecko/20100101 Firefox/88.0.1',
+                          'Mozilla/10.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101 Firefox/102.0']
+            useragent = choice(useragents)
             print(proxy)
+            print(useragent)
+
+            headers = {
+                'user-agent': useragent
+            }
+
             proxies = {
                 'http://': f'http://{proxy}',
                 'https://': f'http://{proxy}'
             }
             self.proxy_index += 1
             try:
-                with httpx.Client(headers=headers, proxies=proxies, timeout=10) as client:
-                # with httpx.Client(headers=headers) as client:
+                # with httpx.Client(headers=headers, proxies=proxies, timeout=10) as client:
+                with httpx.Client(headers=headers) as client:
                     response = client.get(url)
                 retries = 0
                 if response.status_code == 200:
@@ -136,18 +130,18 @@ class EbayScraper:
             product = empty_product.copy()
             # check for variant
             # Multi variant
+            try:
+                SKU = more_desc.css_first(
+                    'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > span.ux-textspans--BOLD').text(
+                    strip=True)
+            except:
+                SKU = more_desc.css_first(
+                    'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > ux-textspans.ux-textspans--BOLD').text(
+                    strip=True)
             if select_box:
                 # Select the options for first option
                 first_options = select_box[-1].css('option')
                 # Generate combinations of options
-                try:
-                    SKU = more_desc.css_first(
-                        'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > span.ux-textspans--BOLD').text(
-                        strip=True)
-                except:
-                    SKU = more_desc.css_first(
-                        'div.ux-layout-section__textual-display.ux-layout-section__textual-display--itemId > ux-textspans.ux-textspans--BOLD').text(
-                        strip=True)
                 for i, first_option in enumerate(first_options[1::]):
                     for j, second_option in enumerate(second_options):
                         for k, third_option in enumerate(third_options):
@@ -174,19 +168,29 @@ class EbayScraper:
                                     elif data == 'Vendor':
                                         product[data] = 'Magic Cars'
                                         # product[data] = f"{product['Handle']}"
+                                    # elif data == 'Variant Price':
+                                    #     # product[data] = float(
+                                    #     #     re.findall(
+                                    #     #         r"\d+\.\d+", left_panel.css('div.x-price-primary')[-1].text(strip=True))[0])
+                                    #     variant_price = float(re.search(r'\$\s*([\d,]+(?:\.\d+)?)', left_panel.css(
+                                    #         'div.x-price-primary')[-1].text(strip=True).replace(',', '')).group(
+                                    #         1))
                                     elif data == 'Variant Price':
-                                        # product[data] = float(
-                                        #     re.findall(
-                                        #         r"\d+\.\d+", left_panel.css('div.x-price-primary')[-1].text(strip=True))[0])
-                                        variant_price = float(re.search(r'\$\s*([\d,]+(?:\.\d+)?)', left_panel.css(
-                                            'div.x-price-primary')[-1].text(strip=True).replace(',', '')).group(
-                                            1))
+                                        variant_price = float(self.get_price(tree, option_value)['price'])
                                         if variant_price > 100.00:
-                                            product[data] = variant_price + 200
+                                            variant_price_add = variant_price + 200.00
                                             self.product_cat = 'B73'
                                         else:
-                                            product[data] = round(variant_price * 1.75, 2)
+                                            variant_price_add = round(variant_price * 1.75, 2)
                                             self.product_cat = 'bprts'
+                                        if j == 0 and k == 0:
+                                            product[data] = variant_price_add
+                                        elif j != 0 and k == 0:
+                                            product[data] = variant_price_add + 89.00
+                                        elif j == 0 and k != 0:
+                                            product[data] = variant_price_add + 39.00
+                                        elif j != 0 and k != 0:
+                                            product[data] = variant_price_add + 39.00 + 89.00
                                     elif data == 'Google Shopping / MPN':
                                         product[data] = UPC
                                     elif data == 'Variant Barcode':
@@ -300,10 +304,27 @@ class EbayScraper:
                                             'h2.d-stores-info-categories__container__info__section__title').attributes.get(
                                             'title')
                                     elif data == 'Location':
-                                        location_parent_element = tree.css_first(
-                                            'div.ux-labels-values.col-12.ux-labels-values--shipping')
-                                        product[data] = location_parent_element.css_first(
-                                            'span.ux-textspans.ux-textspans--SECONDARY').text(strip=True)
+                                        try:
+                                            location_parent_element = tree.css_first(
+                                                'div.ux-labels-values.col-12.ux-labels-values--shipping')
+                                            if location_parent_element:
+                                                product[data] = location_parent_element.css_first(
+                                                    'span.ux-textspans.ux-textspans--SECONDARY').text(strip=True)
+                                            else:
+                                                location_parent_element = tree.css_first(
+                                                    'ux-labels-values.col-12.ux-labels-values__column-last-row.ux-labels-values--localPickup')
+                                                product[data] = location_parent_element.css_first(
+                                                    'div.ux-labels-values__values.col-9 > div > div > span').text(
+                                                    strip=True)
+                                        except Exception as e:
+                                            print('No location')
+                                            product[data] = ''
+
+
+                                        # location_parent_element = tree.css_first(
+                                        #     'div.ux-labels-values.col-12.ux-labels-values--shipping')
+                                        # product[data] = location_parent_element.css_first(
+                                        #     'span.ux-textspans.ux-textspans--SECONDARY').text(strip=True)
                                 product_df = pd.DataFrame(product, index=[0])
                                 collected_df = product_df.copy()
                                 main_images = self.get_main_product_images(tree)
@@ -557,8 +578,17 @@ class EbayScraper:
                                 elif data == 'Seller':
                                     product[data] = tree.css_first('h2.d-stores-info-categories__container__info__section__title').attributes.get('title')
                                 elif data == 'Location':
-                                    location_parent_element = tree.css_first('div.ux-labels-values.col-12.ux-labels-values--shipping')
-                                    product[data] = location_parent_element.css_first('span.ux-textspans.ux-textspans--SECONDARY').text(strip=True)
+                                    try:
+                                        location_parent_element = tree.css_first('div.ux-labels-values.col-12.ux-labels-values--shipping')
+                                        if location_parent_element:
+                                            product[data] = location_parent_element.css_first('span.ux-textspans.ux-textspans--SECONDARY').text(strip=True)
+                                        else:
+                                            location_parent_element = tree.css_first('ux-labels-values.col-12.ux-labels-values__column-last-row.ux-labels-values--localPickup')
+                                            product[data] = location_parent_element.css_first('div.ux-labels-values__values.col-9 > div > div > span').text(strip=True)
+                                    except Exception as e:
+                                        print('no location')
+                                        product[data] = ''
+
                                 product_df = pd.DataFrame(product, index=[0])
                                 collected_df = product_df.copy()
 
@@ -685,10 +715,10 @@ class EbayScraper:
                             collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/test_Original.csv'):
-                collected_df.to_csv('original/test_Original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/385256450114_Desc_Original.csv'):
+                collected_df.to_csv('original/385256450114_Desc_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/test_Original.csv', index=False)
+                collected_df.to_csv('original/385256450114_Desc_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -1136,10 +1166,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/test_Original.csv'):
-                collected_df.to_csv('original/test_Original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/385256450114_Desc_Original.csv'):
+                collected_df.to_csv('original/385256450114_Desc_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/test_Original.csv', index=False)
+                collected_df.to_csv('original/385256450114_Desc_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -1289,16 +1319,19 @@ class EbayScraper:
         return body
 
     def get_product_link(self):
-        pg = 36
+        pg = 16
         product_links = []
         retries = 0
-        while pg < 41 and retries < 3:
+        while pg < 21 and retries < 3:
             try:
                 url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={str(pg)}&_sop=16&&_fcid=1'
                 html = self.fetch(url)
                 tree = HTMLParser(html.text)
+                # print(tree.html)
                 if tree.css_first('h2.srp-controls__count-heading'):
-                    products = tree.css('ul.b-list__items_nofooter.srp-results.srp-grid > li')
+                    # products = tree.css('ul.b-list__items_nofooter.srp-results.srp-grid > li')
+                    products = tree.css('ul.b-list__items_nofooter > li')
+                    print(len(products))
                     for product in products:
                         product_link = product.css_first('a').attributes.get('href')
                         product_links.append(product_link)
@@ -1310,7 +1343,6 @@ class EbayScraper:
             except Exception as e:
                 print(f'get product link retry due to {e}')
                 retries += 1
-                continue
         print(f'{len(product_links)} product links collected')
 
         return product_links
@@ -1353,7 +1385,7 @@ class EbayScraper:
 
     def run(self):
         # urls = self.get_product_link()
-        urls = ['https://www.ebay.com/itm/155457812198', 'https://www.ebay.com/itm/155512048632']
+        urls = ['https://www.ebay.com/itm/385256450114']
         responses = [self.fetch(url) for url in urls]
         datas = [self.get_data(response) for response in responses]
 
