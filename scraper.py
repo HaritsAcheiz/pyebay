@@ -48,8 +48,8 @@ class EbayScraper:
             }
             self.proxy_index += 1
             try:
-                # with httpx.Client(headers=headers, proxies=proxies, timeout=10) as client:
-                with httpx.Client(headers=headers) as client:
+                with httpx.Client(headers=headers, proxies=proxies, timeout=10) as client:
+                # with httpx.Client(headers=headers) as client:
                     response = client.get(url)
                 retries = 0
                 if response.status_code == 200:
@@ -87,6 +87,7 @@ class EbayScraper:
 
     def first_format(self, tree):
         print('first_format')
+        print(tree.css_first('title').text())
         try:
             feedbacks = int(re.search(r'\((\d+)\)', tree.css_first('h2.fdbk-detail-list__title > span.SECONDARY').text().replace(',', '')).group(1))
         except Exception as e:
@@ -715,10 +716,10 @@ class EbayScraper:
                             collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/385256450114_Desc_Original.csv'):
-                collected_df.to_csv('original/385256450114_Desc_Original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/404236047992_Desc_Original.csv'):
+                collected_df.to_csv('original/404236047992_Desc_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/385256450114_Desc_Original.csv', index=False)
+                collected_df.to_csv('original/404236047992_Desc_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -1166,10 +1167,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/385256450114_Desc_Original.csv'):
-                collected_df.to_csv('original/385256450114_Desc_Original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/404236047992_Desc_Original.csv'):
+                collected_df.to_csv('original/404236047992_Desc_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/385256450114_Desc_Original.csv', index=False)
+                collected_df.to_csv('original/404236047992_Desc_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -1385,7 +1386,7 @@ class EbayScraper:
 
     def run(self):
         # urls = self.get_product_link()
-        urls = ['https://www.ebay.com/itm/385256450114']
+        urls = ['https://www.ebay.com/itm/404236047992']
         responses = [self.fetch(url) for url in urls]
         datas = [self.get_data(response) for response in responses]
 

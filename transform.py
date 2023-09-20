@@ -5,7 +5,7 @@ import openai
 import os
 from dataclasses import dataclass
 import pandas as pd
-from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
+from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate, PromptTemplate
 from langchain.chat_models import ChatOpenAI
 from selectolax.parser import HTMLParser
 import re
@@ -70,11 +70,11 @@ class TransformEbay:
         return result
 
     def openai_edit(self, title, description, additional_spec):
-        try:
-            if pd.isna(description):
-                result = description
+        # try:
+        if pd.isna(description):
+            result = description
 
-            else:
+        else:
 
     #            """Rewrite the {current_description} for a product with the title '{title}' and include the following additional specification: '{additional_spec}'. Organize and emphasize its key features and technical specifications using bullet points consistently throughout the description. Ensure that the description is engaging and informative while consistently excluding any payment details, return policies, feedback references, company background, warranty terms, shipping information, marketplace references, or ASIN number. Begin each description uniquely avoid description begin with 'introducing' or 'experience'. Maintain consistency by always beginning with a compelling opening sentence and incorporating the phrase 'ride-on' in an engaging manner. Utilize distinct phrasing, synonyms, and alternative sentence structures to consistently create a unique product description."""
     #             human_template = """Rewrite this {current_description} description for a product with the title '{title}' and include the following additional specification: '{additional_spec}'. Remove information about payment, return, feedback, company background, warranty, shipping, marketplace references, and ASIN number. Maintain consistency by always beginning with a compelling opening sentence and incorporating the phrase 'ride-on' in an engaging manner. Prohibited to begin description with 'introducing' or 'experience'. Utilize distinct phrasing, synonyms, and alternative sentence structures to consistently create a unique product description. Present output in form of paragraph and bullet point of key features and specifications."""
@@ -98,28 +98,41 @@ class TransformEbay:
 
                 # Describe every each variant of product individually for all product variant provided.
 
-                system_template = """
-                You are an SEO specialist in a ride-on toy company. Your task is to diversify the provided product description. Describe every each variant of product individually for all product variant provided and make clear boundaries between them. Enriching it with the provided additional specifications. Include all the provided additional specifications, key features, and product specifications. Remove any information regarding payment, return, feedback, company background, warranty, shipping, contact us. Remove information regarding marketplace platform such as eBay, Amazon, etc. Remove information regarding health issue warning such as cancer, reproductive harm, birth defects. In the opening paragraph, always use the {title} itself without any word before it except "The". Always incorporate the phrase 'ride-on' seamlessly into the description. Utilize vivid language, unique phrasing, synonyms, and alternative sentence structures with adventurous and playful tone to consistently create a one-of-a-kind product description. Keep the terms "car" and "truck" intact, without substituting them with synonyms. Use imperial metrics for all measurement units and convert their values where necessary. Avoid to put note in the description. Present the output in HTML format with a well-structured parahgraph that constantly including all key features and specifications in bullet points. Your ultimate goal is to create an engaging and SEO-friendly product description.
-                """
+            # system_template = """
+            # You are an SEO specialist in a ride-on toy company. Your task is to diversify the provided product description using vivid language, unique phrasing, synonyms, and alternative sentence structures with adventurous and playful tone that completely describes every each variant of the product individually for all product variant provided and make clear boundaries between them. Enriching it with the provided this following additional specifications. Include all the provided additional specifications, key features, and product specifications. Completely eliminate any reference to payment, return, feedback, company background, warranty, shipping, contact us, eBay, Amazon, cancer, reproductive harm, birth defects or similar terms from the new description. In the opening paragraph, always use the {title} itself without any word before it except "The". Always incorporate the phrase 'ride-on' seamlessly into the description. Keep the terms "car" and "truck" intact, without substituting them with synonyms. Use imperial metrics for all measurement units and convert their values where necessary. Avoid to put note in the description. Present the output in HTML format with a well-structured parahgraph that constantly including all key features and specifications in bullet points.
+            # """
 
-                human_template = """
-                Please diversify {current_description} and enrich it with {additional_spec} as additional specification. Answer:
-                """
+            system_template = """
+            You are an SEO specialist in a ride-on toy company. Your task is to diversify the provided product description. Describe every each variant of product individually for all product variant provided and make clear boundaries between them. Enriching it with the provided additional specifications. Include all the provided additional specifications, key features, and product specifications. Remove any information regarding payment, return, feedback, company background, warranty, shipping, contact us. Remove information regarding marketplace platform such as eBay, Amazon, etc. Remove information regarding health issue warning such as cancer, reproductive harm, birth defects. In the opening paragraph, always use the {title} itself without any word before it except "The". Always incorporate the phrase 'ride-on' seamlessly into the description. Utilize vivid language, unique phrasing, synonyms, and alternative sentence structures with adventurous and playful tone to consistently create a one-of-a-kind product description. Keep the terms "car" and "truck" intact, without substituting them with synonyms. Use imperial metrics for all measurement units and convert their values where necessary. Avoid to put note in the description. Present the output in HTML format with a well-structured parahgraph that constantly including all key features and specifications in bullet points. Your ultimate goal is to create an engaging and SEO-friendly product description.
+            """
 
-                human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
-                system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)
-                chat_prompt_template = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
-                chat_prompt_format = chat_prompt_template.format_messages(title=title, current_description=description,
-                                                                          additional_spec=additional_spec)
-                chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.7, request_timeout=120)
-                # chat = ChatOpenAI(model_name="gpt-3.5-turbo-instruct", temperature=0.7, request_timeout=120)
+            # human_template = """
+            # Please boost {current_description} and enrich it with {additional_spec} as additional specification. Answer:
+            # """
 
-                output = chat(chat_prompt_format)
-                content = output.content
-                result = content
-                print(f'Transform {title} description completed!')
-        except:
-            result = "Failed"
+            human_template = """
+            Current description: {current_description}
+            Additional specification: {additional_spec}
+            Answer:
+            """
+
+            # prompt_template = """
+            # You are an SEO specialist in a ride-on toy company. Your task is to diversify this following description {current_description}. Describe every each variant of product individually for all product variant provided and make clear boundaries between them. Enriching it with the provided additional specifications {additional_spec}. Include all the provided additional specifications, key features, and product specifications. Remove any information regarding payment, return, feedback, company background, warranty, shipping, contact us. Remove information regarding marketplace platform such as eBay, Amazon, etc. Remove information regarding health issue warning such as cancer, reproductive harm, birth defects. In the opening paragraph, always use the {title} itself without any word before it except "The". Always incorporate the phrase 'ride-on' seamlessly into the description. Utilize vivid language, unique phrasing, synonyms, and alternative sentence structures with adventurous and playful tone to consistently create a one-of-a-kind product description. Keep the terms "car" and "truck" intact, without substituting them with synonyms. Use imperial metrics for all measurement units and convert their values where necessary. Avoid to put note in the description. Present the output in HTML format with a well-structured parahgraph that constantly including all key features and specifications in bullet points. Your ultimate goal is to create an engaging and SEO-friendly product description.
+            # """
+
+            human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
+            system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)
+            chat_prompt_template = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
+            chat_prompt_format = chat_prompt_template.format_messages(title=title, current_description=description,
+                                                                      additional_spec=additional_spec)
+            chat = ChatOpenAI(model_name="gpt-3.5-turbo-16k", temperature=0.4, request_timeout=120)
+
+            output = chat(chat_prompt_format)
+            content = output.content
+            result = content
+            print(f'Transform {title} description completed!')
+        # except:
+        #     result = "Failed"
 
         return result
 
@@ -128,23 +141,22 @@ class TransformEbay:
             result = title
 
         else:
-            # system_template = """As a content writer for an e-commerce site, Your goal is to create an attractive and SEO-friendly product title."""
+            # prompt_template = """Generate a new product title based on the original title {title} completely eliminate any reference to shipping, delivery, or similar terms from the new title. Instead, focus on paraphrasing the title using synonyms and alternative phrasing while maintaining its original essence."""
 
-            # human_template = """Generate a product title within 70 characters or less for our ride-on toy that evokes a sense of adventure and playfulness without using initiation words such as 'embark,' 'unleash,' etc. Remove any information about payment, return, feedback, company background, warranty, shipping, marketplace references, and ASIN number. Draw inspiration from the following description {current_description} while maintaining a adventurous and playful tone. Utilize vivid language, unique phrasing, synonyms, and alternative sentence structures to avoid plagiarism from this {title}. Ensure there is no exclamation mark in the end of the title. """
+            prompt_template = """Paraphrasing the original title {title} into 1 fresh product title that completely eliminate any reference to shipping, delivery, or similar terms and avoid to use "Ultimate" word.""" #using synonyms and alternative phrasing while maintaining its original essence."""
+            prompt = PromptTemplate.from_template(prompt_template)
+            prompt_format = prompt.format_prompt(title=title)
 
-            system_template = """You are SEO specialist in ride-on toy company. Your job is diversify provided so it is not considered as duplicate content. Remove all information about shipping and return. Utilize synonyms and alternative word to consistently create a one-of-a-kind product title.""" # Your ultimate goal is to create an engaging and SEO-friendly product title"""
+            chat = openai.Completion.create(
+                model="gpt-3.5-turbo-instruct",
+                prompt=prompt_format.text,
+                temperature=0.6,
+                top_p=0.37,
+                max_tokens=80,
+                request_timeout=60
+            )
 
-            human_template = """Provide one new product title by diversifying the following product title {title}. Answer:"""
-
-            human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
-            system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)
-            chat_prompt_template = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
-            chat_prompt_format = chat_prompt_template.format_messages(current_description=description, title=title)
-            chat = ChatOpenAI(model_name="gpt-3.5-turbo-instruct", temperature=0.7, request_timeout=60)
-
-
-            output = chat(chat_prompt_format)
-            content = output.content
+            content = chat.choices[0].text.replace('"', '').strip()
             match = re.findall(r'"(.*?)"', content)
             if match:
                 print(f'Transform {title} title completed!')
@@ -199,7 +211,7 @@ class TransformEbay:
         return result
 
     def run(self):
-        file_name = '385256450114_Desc'
+        file_name = '195717243789_Desc'
         df = pd.read_csv(
             f'original/{file_name}_Original.csv'
             # 'cek_Original.csv'
