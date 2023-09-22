@@ -180,7 +180,7 @@ class EbayScraper:
                                         variant_price = float(self.get_price(tree, option_value)['price'])
                                         if variant_price > 100.00:
                                             variant_price_add = variant_price + 200.00
-                                            self.product_cat = 'B73'
+                                            self.product_cat = 'B76'
                                         else:
                                             variant_price_add = round(variant_price * 1.75, 2)
                                             self.product_cat = 'bprts'
@@ -214,7 +214,7 @@ class EbayScraper:
                                                     f'div.ux-image-carousel.img-transition-medium > div[data-idx="0"]').css_first(
                                                     'img').attributes.get('data-src')
                                     elif data == 'Tags':
-                                        product[data] = 'B73'
+                                        product[data] = 'B76'
                                     elif data == 'Published':
                                         product[data] = True
                                     # elif data == 'Option1 Name':
@@ -365,7 +365,7 @@ class EbayScraper:
                                         variant_price = float(self.get_price(tree, option_value)['price'])
                                         if variant_price > 100.00:
                                             variant_price_add = variant_price + 200.00
-                                            self.product_cat = 'B73'
+                                            self.product_cat = 'B76'
                                         else:
                                             variant_price_add = round(variant_price * 1.75, 2)
                                             self.product_cat = 'bprts'
@@ -480,7 +480,7 @@ class EbayScraper:
                                         1))
                                     if variant_price > 100.00:
                                         product[data] = variant_price + 200.00
-                                        self.product_cat = 'B73'
+                                        self.product_cat = 'B76'
                                     else:
                                         product[data] = round(variant_price * 1.75, 2)
                                         self.product_cat = 'bprts'
@@ -502,7 +502,7 @@ class EbayScraper:
                                         product[data] = picture_panel.css_first(
                                             'div.ux-image-carousel-item.active.image').css_first('img').attributes.get('src')
                                 elif data == 'Tags':
-                                    product[data] = 'B73'
+                                    product[data] = 'B76'
                                 elif data == 'Published':
                                     product[data] = True
                                 elif data == 'Option1 Name':
@@ -640,7 +640,7 @@ class EbayScraper:
                                         1))
                                     if variant_price > 100.00:
                                         variant_price_add = variant_price + 200.00
-                                        self.product_cat = 'B73'
+                                        self.product_cat = 'B76'
                                     else:
                                         variant_price_add = round(variant_price * 1.75, 2)
                                         self.product_cat = 'bprts'
@@ -716,10 +716,10 @@ class EbayScraper:
                             collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/404236047992_Desc_Original.csv'):
-                collected_df.to_csv('original/404236047992_Desc_Original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/20230922_026-030_Desc_Original.csv'):
+                collected_df.to_csv('original/20230922_026-030_Desc_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/404236047992_Desc_Original.csv', index=False)
+                collected_df.to_csv('original/20230922_026-030_Desc_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -1167,10 +1167,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/404236047992_Desc_Original.csv'):
-                collected_df.to_csv('original/404236047992_Desc_Original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/20230922_026-030_Desc_Original.csv'):
+                collected_df.to_csv('original/20230922_026-030_Desc_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/404236047992_Desc_Original.csv', index=False)
+                collected_df.to_csv('original/20230922_026-030_Desc_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -1320,10 +1320,10 @@ class EbayScraper:
         return body
 
     def get_product_link(self):
-        pg = 16
+        pg = 26
         product_links = []
         retries = 0
-        while pg < 21 and retries < 3:
+        while pg < 31 and retries < 3:
             try:
                 url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={str(pg)}&_sop=16&&_fcid=1'
                 html = self.fetch(url)
@@ -1385,8 +1385,8 @@ class EbayScraper:
         return str(temp_dict)
 
     def run(self):
-        # urls = self.get_product_link()
-        urls = ['https://www.ebay.com/itm/404236047992']
+        urls = self.get_product_link()
+        # urls = ['https://www.ebay.com/itm/20230922_026-030_Desc']
         responses = [self.fetch(url) for url in urls]
         datas = [self.get_data(response) for response in responses]
 
