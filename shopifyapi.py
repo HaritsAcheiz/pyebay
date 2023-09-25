@@ -4,6 +4,7 @@ import json
 import os
 import pandas as pd
 from dotenv import load_dotenv
+from datetime import datetime, date
 
 load_dotenv()
 
@@ -490,54 +491,139 @@ class ShopifyApp:
     def products_to_collection(self, client):
         pass
 
-    def get_files(self, client, filename):
-        print("Fetching files data...")
-        query = '''
-        query getFilesByFilename($filename:String!)
-        {
-            files(first:1, query:$filename) {
-                edges {
-                    node {
-                        id
-                    }
-                }
-            }
-        }
-        '''
-
-        variables = {'filename': filename}
-
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2023-07/graphql.json',
-                               json={'query': query, 'variables': variables})
-        print(response)
-        print(response.json())
-        print('')
-
-    def edit_file(self, client, variable):
-        print("Fetching files data...")
-        query = '''
-                        {
-                            files(first: 3) {
-                                edges {
-                                    node {
+    def get_file(self, client, created_at, updated_at, after):
+        print("Fetching file data...")
+        if after == '':
+            query = '''
+                    query getFilesByCreatedAt($query:String!){
+                        files(first:250, query:$query) {
+                            edges {
+                                node {
+                                    ... on MediaImage {
                                         id
+                                        alt
+                                        image {
+                                            id
+                                            altText
+                                        }
                                     }
                                 }
                             }
+                            pageInfo{
+                                hasNextPage
+                                endCursor
+                            }
                         }
-                        '''
+                    }
+                    '''
+
+            variables = {'query': "(created_at:>={}) AND (updated_at:<={})".format(created_at, updated_at)}
+
+        else:
+
+            query = '''
+            query getFilesByCreatedAt($query:String!, $after:String!){
+                files(first:250, after:$after, query:$query) {
+                    edges {
+                        node {
+                            ... on MediaImage {
+                                id
+                                alt
+                                image {
+                                    id
+                                    altText
+                                }
+                            }
+                        }
+                    }
+                    pageInfo{
+                        hasNextPage
+                        endCursor
+                    }
+                }
+            }
+            '''
+
+            variables = {'query': "(created_at:>={}) AND (updated_at:<={})".format(created_at, updated_at),
+                         'after': after}
 
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2023-07/graphql.json',
-                               json={"query": query})
-        print(response)
-        print(response.json())
-        print('')
+                               # json={'query': query})
+                               json={'query': query, 'variables': variables})
+
+        return response.json()
+
+    def bulk_get_file(self):
+        # print("Getting bulk file...")
+        # mutation = """
+        # mutation bulkOperationRunQuery($query: String!) {
+        #     bulkOperationRunQuery(query: $query) {
+        #         bulkOperation {
+        #             # BulkOperation fields
+        #             }
+        #         userErrors {
+        #             field
+        #             message
+        #         }
+        #     }
+        # }
+        # """
+        #
+        # response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2023-07/graphql.json',
+        #                        json={'query': mutation, 'variables': variables})
+        pass
+
+    def edit_file(self, client, file_id, file_name, altText):
+        print("Update filename...")
+        extention = '.' + altText.rsplit('.', 1)[-1]
+        mutation = '''
+                mutation fileUpdate($files:[FileUpdateInput!]!)
+                {
+                    fileUpdate(files: $files) {
+                        files {
+                            id
+                        }
+                        userErrors {
+                            field
+                            message
+                        }
+                    }
+                }
+                '''
+
+        variables = {
+            'files': [
+                {
+                    'id': file_id,
+                    'filename': file_name + extention
+                }
+            ]
+        }
+
+        print(variables)
+        while 1:
+            try:
+                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2023-07/graphql.json',
+                                       json={'query': mutation, 'variables': variables})
+                print(response)
+                print(response.json())
+                print('')
+                break
+            except Exception as e:
+                print(e)
 
 if __name__ == '__main__':
     s = ShopifyApp()
     client = s.create_session()
-    s.get_files(client, filename='s-l1600_2d1fdefc-ba9a-4089-b87e-45351e1968b7')
+    updated_at = '2023-09-24T00:00:00Z'
+    created_at = '2023-09-23T00:00:00Z'
+    file_data = s.get_file(client, created_at=created_at, updated_at=updated_at, after='')
+    print(file_data)
 
+    # print(file_data)
+    # file_id = file_data['data']['files']['edges'][0]['node']['id']
+    # print(file_id)
+    # s.edit_file(client, file_id=file_id)
     # s.query_shop(client)
     # s.query_product(client)
     # s.create_product(client)
