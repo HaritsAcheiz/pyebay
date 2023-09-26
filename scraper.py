@@ -15,18 +15,20 @@ proxy = os.getenv('PROXY')
 
 @dataclass
 class EbayScraper:
-    proxies: List = field(default_factory=lambda: [
-        '192.126.196.107:8800', '192.126.245.45:8800', '196.51.221.191:8800', '196.51.221.57:8800', '192.126.245.97:8800',
-        '192.126.196.109:8800', '192.126.245.135:8800', '192.126.196.49:8800', '192.126.245.252:8800', '196.51.217.219:8800']
-)
-    proxy_index:int = 0
+    proxies: List = field(default_factory=lambda: ['154.12.112.163:8800','192.126.196.137:8800','154.12.112.208:8800',
+                                                   '192.126.194.95:8800','154.12.113.169:8800','192.126.196.93:8800',
+                                                   '154.12.113.202:8800','192.126.194.135:8800','154.12.113.32:8800',
+                                                   '154.12.113.91:8800']
+                          )
+
+    proxy_index: int = 0
     product_cat: str = ''
 
     def fetch(self, url):
 
         retries = 0
         while retries < 10:
-            if self.proxy_index >= 3:
+            if self.proxy_index >= 10:
                 self.proxy_index = 0
             proxy = self.proxies[self.proxy_index]
             useragents = ['Mozilla / 5.0(Windows NT 10.0; WOW64; rv: 52.0) Gecko / 20100101 Firefox / 52.0',
@@ -36,7 +38,6 @@ class EbayScraper:
                           'Mozilla/10.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101 Firefox/102.0']
             useragent = choice(useragents)
             print(proxy)
-            print(useragent)
 
             headers = {
                 'user-agent': useragent
@@ -47,8 +48,9 @@ class EbayScraper:
                 'https://': f'http://{proxy}'
             }
             self.proxy_index += 1
+            timeout = httpx.Timeout(10.0, read=20.0)
             try:
-                with httpx.Client(headers=headers, proxies=proxies, timeout=10) as client:
+                with httpx.Client(headers=headers, proxies=proxies, timeout=timeout) as client:
                 # with httpx.Client(headers=headers) as client:
                     response = client.get(url)
                 retries = 0
@@ -56,7 +58,7 @@ class EbayScraper:
                     print('Fetch completed')
                     break
                 else:
-                    print(f'Fetch retry with status code{response.status_code}')
+                    print(f'Fetch retry with status code {response.status_code}')
                     time.sleep(3)
                     retries += 1
                     continue
@@ -180,7 +182,7 @@ class EbayScraper:
                                         variant_price = float(self.get_price(tree, option_value)['price'])
                                         if variant_price > 100.00:
                                             variant_price_add = variant_price + 200.00
-                                            self.product_cat = 'B77'
+                                            self.product_cat = 'B81'
                                         else:
                                             variant_price_add = round(variant_price * 1.75, 2)
                                             self.product_cat = 'bprts'
@@ -214,7 +216,7 @@ class EbayScraper:
                                                     f'div.ux-image-carousel.img-transition-medium > div[data-idx="0"]').css_first(
                                                     'img').attributes.get('data-src')
                                     elif data == 'Tags':
-                                        product[data] = 'B77'
+                                        product[data] = 'B81'
                                     elif data == 'Published':
                                         product[data] = True
                                     # elif data == 'Option1 Name':
@@ -369,7 +371,7 @@ class EbayScraper:
                                         variant_price = float(self.get_price(tree, option_value)['price'])
                                         if variant_price > 100.00:
                                             variant_price_add = variant_price + 200.00
-                                            self.product_cat = 'B77'
+                                            self.product_cat = 'B81'
                                         else:
                                             variant_price_add = round(variant_price * 1.75, 2)
                                             self.product_cat = 'bprts'
@@ -484,7 +486,7 @@ class EbayScraper:
                                         1))
                                     if variant_price > 100.00:
                                         product[data] = variant_price + 200.00
-                                        self.product_cat = 'B77'
+                                        self.product_cat = 'B81'
                                     else:
                                         product[data] = round(variant_price * 1.75, 2)
                                         self.product_cat = 'bprts'
@@ -506,7 +508,7 @@ class EbayScraper:
                                         product[data] = picture_panel.css_first(
                                             'div.ux-image-carousel-item.active.image').css_first('img').attributes.get('src')
                                 elif data == 'Tags':
-                                    product[data] = 'B77'
+                                    product[data] = 'B81'
                                 elif data == 'Published':
                                     product[data] = True
                                 elif data == 'Option1 Name':
@@ -648,7 +650,7 @@ class EbayScraper:
                                         1))
                                     if variant_price > 100.00:
                                         variant_price_add = variant_price + 200.00
-                                        self.product_cat = 'B77'
+                                        self.product_cat = 'B81'
                                     else:
                                         variant_price_add = round(variant_price * 1.75, 2)
                                         self.product_cat = 'bprts'
@@ -724,10 +726,10 @@ class EbayScraper:
                             collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/20230925_031-035_Desc_Original.csv'):
-                collected_df.to_csv('original/20230925_031-035_Desc_Original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/20230926_051-055_Desc_Original.csv'):
+                collected_df.to_csv('original/20230926_051-055_Desc_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/20230925_031-035_Desc_Original.csv', index=False)
+                collected_df.to_csv('original/20230926_051-055_Desc_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -1183,10 +1185,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/20230925_031-035_Desc_Original.csv'):
-                collected_df.to_csv('original/20230925_031-035_Desc_Original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/20230926_051-055_Desc_Original.csv'):
+                collected_df.to_csv('original/20230926_051-055_Desc_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/20230925_031-035_Desc_Original.csv', index=False)
+                collected_df.to_csv('original/20230926_051-055_Desc_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -1336,10 +1338,10 @@ class EbayScraper:
         return body
 
     def get_product_link(self):
-        pg = 31
+        pg = 51
         product_links = []
         retries = 0
-        while pg < 36 and retries < 3:
+        while pg < 56 and retries < 3:
             try:
                 url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={str(pg)}&_sop=16&&_fcid=1'
                 html = self.fetch(url)
@@ -1360,6 +1362,7 @@ class EbayScraper:
             except Exception as e:
                 print(f'get product link retry due to {e}')
                 retries += 1
+                continue
         print(f'{len(product_links)} product links collected')
 
         return product_links
@@ -1402,7 +1405,7 @@ class EbayScraper:
 
     def run(self):
         urls = self.get_product_link()
-        # urls = ['https://www.ebay.com/itm/20230925_031-035_Desc']
+        # urls = ['https://www.ebay.com/itm/20230926_051-055_Desc']
         responses = [self.fetch(url) for url in urls]
         datas = [self.get_data(response) for response in responses]
 

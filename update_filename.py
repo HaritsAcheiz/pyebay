@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import shopifyapi
 from datetime import datetime
@@ -22,15 +24,17 @@ def generate_filename(handle, id):
 
 if __name__ == '__main__':
     # read imported product data
-    imported_products = pd.read_csv('final_result/20230925_026-030_Desc_Final.csv',
-                                    usecols=['Handle', 'Image Alt Text'],
-                                    encoding='unicode_escape')
-    imported_products.drop_duplicates(subset='Image Alt Text', inplace=True, ignore_index=True)
+    imported_products = pd.read_csv('final_result/20230926_036-040_Desc_Final.csv',
+                                    usecols=['Handle', 'Image Alt Text'])
+                                    # encoding='unicode_escape')
+    imported_products.drop_duplicates(subset='Image Alt Text', inplace=True, ignore_index=True, keep='first')
+    # print('============================Data Frame imported_products================================')
+    # print(imported_products)
 
     # get shopify file ID
     s = shopifyapi.ShopifyApp()
     client = s.create_session()
-    updated_at = '2023-09-25T00:00:00Z'
+    updated_at = '2023-09-26T00:00:00Z'
     created_at = '2023-09-25T00:00:00Z'
     hasNextPage = True
     after = ''
@@ -45,11 +49,13 @@ if __name__ == '__main__':
             for data in datas:
                 image_datas.append(data['node'])
             images_df = pd.DataFrame(image_datas)
-            print('============================Data Frame shopify API================================')
-            print(images_df)
+            # print('============================Data Frame shopify API================================')
+            # print(images_df['alt'])
 
             # merge product data with shopify file ID
             merged_products = images_df.merge(imported_products, how='inner', right_on='Image Alt Text', left_on='alt')
+            # print('============================Data Frame merged products================================')
+            # print(merged_products)
 
             # generate filename
             merged_products['filename'] = merged_products.apply(lambda x: generate_filename(x['Handle'], x['id']), axis=1)
@@ -59,4 +65,3 @@ if __name__ == '__main__':
 
         except Exception as e:
             print(e)
-            break
