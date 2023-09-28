@@ -1,3 +1,4 @@
+from time import sleep
 import httpx
 from dataclasses import dataclass
 import json
@@ -546,12 +547,21 @@ class ShopifyApp:
 
             variables = {'query': "(created_at:>={}) AND (updated_at:<={})".format(created_at, updated_at),
                          'after': after}
+        retries = 0
+        while retries <3:
+            response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2023-07/graphql.json',
+                                   json={'query': query, 'variables': variables})
+                                   # json={'query': query})
+            try:
+                result = response.json()
+                print(result['data'])
+                break
+            except:
+                retries += 1
+                sleep(1)
+                continue
 
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2023-07/graphql.json',
-                               # json={'query': query})
-                               json={'query': query, 'variables': variables})
-
-        return response.json()
+        return result
 
     def bulk_get_file(self):
         # print("Getting bulk file...")

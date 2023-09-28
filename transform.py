@@ -170,31 +170,74 @@ class TransformEbay:
     def transform_description(self, df):
         df['text_desc'] = df['Body (HTML)'].apply(self.parse)
         df['Body (HTML)'] = df.apply(lambda x: self.openai_edit(x['Title'], x['text_desc'], x['Item_Desc']), axis=1)
-        threshold = len(df) * 0.7
-        df['Body (HTML)'] = df.apply(lambda x: self.replace_rideon(x['Body (HTML)']) if x.name < threshold else self.replace_rideon2(x['Body (HTML)']), axis=1)
+        # threshold = len(df) * 0.7
+        # df['Body (HTML)'] = df.apply(lambda x: self.replace_rideon(x['Body (HTML)']) if x.name < threshold else self.replace_rideon2(x['Body (HTML)']), axis=1)
+        # df['Body (HTML)'] = df.apply(lambda x: self.replace24v(x['Body (HTML)']), axis=1)
+        df['Body (HTML)'] = df.apply(lambda x: self.replace_rideon(x['Body (HTML)']), axis=1)
         df.drop(columns=['text_desc'], inplace=True)
 
     def transform_title(self, df):
         df['Title'] = df.apply(lambda x: self.openai_edit_title(x['Title'], x['Body (HTML)']), axis=1)
 
+    # def replace_rideon(self, description):
+    #     try:
+    #         count_of_rideon = description.count('ride-on')
+    #         if count_of_rideon > 1:
+    #             stage1 = description.replace('ride-on', '<a href=https://www.magiccars.com>ride-on</a>', 2)
+    #             result = stage1.replace('<a href=https://www.magiccars.com>ride-on</a>', 'ride-on', 1)
+    #         else:
+    #             result = description.replace('ride-on', '<a href=https://www.magiccars.com>ride-on</a>', 1)
+    #     except:
+    #         result = description
+    #
+    #     return result
+
+    # def replace24v(self, description):
+    #     found = 0
+    #     try:
+    #         count_of_rideon = description.count('24v ride on')
+    #         if count_of_rideon > 1:
+    #             stage1 = description.replace('24v ride on', '<a href=https://www.magiccars.com/products/magic-cars-24-volt-big-electric-truck-ride-on-car-suv-rc-for-kids-w-computer>24v ride on</a>', 2)
+    #             result = stage1.replace('<a href=https://www.magiccars.com/products/magic-cars-24-volt-big-electric-truck-ride-on-car-suv-rc-for-kids-w-computer>24v ride on</a>', '24v ride on', 1)
+    #         else:
+    #             result = description.replace('24v ride on', '<a href=https://www.magiccars.com/products/magic-cars-24-volt-big-electric-truck-ride-on-car-suv-rc-for-kids-w-computer>24v ride on</a>', 1)
+    #         found = 1
+    #     except:
+    #         result = description
+    #
+    #     if found == 0:
+    #         try:
+    #             count_of_rideon = description.count('24 volt ride on')
+    #             if count_of_rideon > 1:
+    #                 stage1 = description.replace('24 volt ride on',
+    #                                              '<a href=https://www.magiccars.com/products/magic-cars-24-volt-big-electric-truck-ride-on-car-suv-rc-for-kids-w-computer>24 volt ride on</a>',
+    #                                              2)
+    #                 result = stage1.replace(
+    #                     '<a href=https://www.magiccars.com/products/magic-cars-24-volt-big-electric-truck-ride-on-car-suv-rc-for-kids-w-computer>24 volt ride on</a>',
+    #                     '24 volt ride on', 1)
+    #             else:
+    #                 result = description.replace('24 volt ride on',
+    #                                              '<a href=https://www.magiccars.com/products/magic-cars-24-volt-big-electric-truck-ride-on-car-suv-rc-for-kids-w-computer>24 volt ride on</a>',
+    #                                              1)
+    #         except:
+    #             result = description
+    #
+    #     return result
+
     def replace_rideon(self, description):
         try:
             count_of_rideon = description.count('ride-on')
-            if count_of_rideon > 1:
-                stage1 = description.replace('ride-on', '<a href=https://www.magiccars.com>ride-on</a>', 2)
-                result = stage1.replace('<a href=https://www.magiccars.com>ride-on</a>', 'ride-on', 1)
-            else:
-                result = description.replace('ride-on', '<a href=https://www.magiccars.com>ride-on</a>', 1)
-        except:
-            result = description
-        return result
-
-    def replace_rideon2(self, description):
-        subtitute_words = ['remote control ride on', 'rc ride on']
-        choosen_sub_word = choice(subtitute_words)
-        try:
-            count_of_rideon = description.count('ride-on')
-            if 'remote' in description.lower():
+            if ('24v' in description.lower()) or ('24 volt' in description.lower()):
+                subtitute_words = ['24v ride on', '24 volt ride on']
+                choosen_sub_word = choice(subtitute_words)
+                if count_of_rideon > 1:
+                    stage1 = description.replace('ride-on', f'<a href=https://www.magiccars.com/products/magic-cars-24-volt-big-electric-truck-ride-on-car-suv-rc-for-kids-w-computer>{choosen_sub_word}</a>', 2)
+                    result = stage1.replace(f'<a href=https://www.magiccars.com/products/magic-cars-24-volt-big-electric-truck-ride-on-car-suv-rc-for-kids-w-computer>{choosen_sub_word}</a>', 'ride-on', 1)
+                else:
+                    result = description.replace('ride-on', f'<a href=https://www.magiccars.com/products/magic-cars-24-volt-big-electric-truck-ride-on-car-suv-rc-for-kids-w-computer>{choosen_sub_word}</a>', 1)
+            elif 'remote' in description.lower():
+                subtitute_words = ['remote control ride on', 'rc ride on']
+                choosen_sub_word = choice(subtitute_words)
                 if count_of_rideon > 1:
                     stage1 = description.replace('ride-on', f'<a href=https://www.magiccars.com>{choosen_sub_word}</a>', 2)
                     result = stage1.replace(f'<a href=https://www.magiccars.com>{choosen_sub_word}</a>', 'ride-on', 1)
@@ -208,10 +251,32 @@ class TransformEbay:
                     result = description.replace('ride-on', f'<a href=https://www.magiccars.com>ride-on</a>', 1)
         except:
             result = description
+
         return result
 
+    # def replace_rideon2(self, description):
+    #     subtitute_words = ['remote control ride on', 'rc ride on']
+    #     choosen_sub_word = choice(subtitute_words)
+    #     try:
+    #         count_of_rideon = description.count('ride-on')
+    #         if 'remote' in description.lower():
+    #             if count_of_rideon > 1:
+    #                 stage1 = description.replace('ride-on', f'<a href=https://www.magiccars.com>{choosen_sub_word}</a>', 2)
+    #                 result = stage1.replace(f'<a href=https://www.magiccars.com>{choosen_sub_word}</a>', 'ride-on', 1)
+    #             else:
+    #                 result = description.replace('ride-on', f'<a href=https://www.magiccars.com>{choosen_sub_word}</a>', 1)
+    #         else:
+    #             if count_of_rideon > 1:
+    #                 stage1 = description.replace('ride-on', f'<a href=https://www.magiccars.com>ride-on</a>', 2)
+    #                 result = stage1.replace(f'<a href=https://www.magiccars.com>ride-on</a>', 'ride-on', 1)
+    #             else:
+    #                 result = description.replace('ride-on', f'<a href=https://www.magiccars.com>ride-on</a>', 1)
+    #     except:
+    #         result = description
+    #     return result
+
     def run(self):
-        file_name = '20230926_041-045_Desc'
+        file_name = '20230928_091-095_Desc'
         df = pd.read_csv(
             f'original/{file_name}_Original.csv'
             # 'cek_Original.csv'

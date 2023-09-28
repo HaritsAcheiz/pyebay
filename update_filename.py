@@ -24,9 +24,9 @@ def generate_filename(handle, id):
 
 if __name__ == '__main__':
     # read imported product data
-    imported_products = pd.read_csv('final_result/20230926_036-040_Desc_Final.csv',
-                                    usecols=['Handle', 'Image Alt Text'])
-                                    # encoding='unicode_escape')
+    imported_products = pd.read_csv('final_result/20230928_076-080_Desc_B86_QC.csv',
+                                    usecols=['Handle', 'Image Alt Text'],
+                                    encoding='unicode_escape')
     imported_products.drop_duplicates(subset='Image Alt Text', inplace=True, ignore_index=True, keep='first')
     # print('============================Data Frame imported_products================================')
     # print(imported_products)
@@ -34,10 +34,11 @@ if __name__ == '__main__':
     # get shopify file ID
     s = shopifyapi.ShopifyApp()
     client = s.create_session()
-    updated_at = '2023-09-26T00:00:00Z'
-    created_at = '2023-09-25T00:00:00Z'
+    updated_at = '2023-09-28T00:00:00Z'
+    created_at = '2023-09-27T00:00:00Z'
     hasNextPage = True
     after = ''
+    retries = 0
 
     while hasNextPage:
         try:
@@ -45,6 +46,8 @@ if __name__ == '__main__':
             datas = response['data']['files']['edges']
             image_datas = []
             after = response['data']['files']['pageInfo']['endCursor']
+            print(f'hasNextPage: {hasNextPage}')
+            print(f'after: {after}')
             hasNextPage = response['data']['files']['pageInfo']['hasNextPage']
             for data in datas:
                 image_datas.append(data['node'])
