@@ -103,7 +103,7 @@ class TransformEbay:
             # """
 
             system_template = """
-            You are an SEO specialist in a ride-on toy company. Your task is to diversify the provided product description. Describe every each variant of product individually for all product variant provided and make clear boundaries between them. Enriching it with the provided additional specifications. Include all the provided additional specifications, key features, and product specifications. Remove any information regarding payment, return, feedback, company background, warranty, shipping, contact us. Remove information regarding marketplace platform such as eBay, Amazon, etc. Remove information regarding health issue warning such as cancer, reproductive harm, birth defects. In the opening paragraph, always use the {title} itself without any word before it except "The". Always incorporate the phrase 'ride-on' seamlessly into the description. Utilize vivid language, unique phrasing, synonyms, and alternative sentence structures with adventurous and playful tone to consistently create a one-of-a-kind product description. Keep the terms "car" and "truck" intact, without substituting them with synonyms. Use imperial metrics for all measurement units and convert their values where necessary. Avoid to put note in the description. Present the output in HTML format with a well-structured parahgraph that constantly including all key features and specifications in bullet points. Your ultimate goal is to create an engaging and SEO-friendly product description.
+            You are an SEO specialist in a ride-on toy company. Your task is to diversify the provided product description. Describe every each variant of product individually for all product variant provided and make clear boundaries between them. Enriching it with the provided additional specifications. Include all the provided additional specifications, key features, and product specifications. Remove any information regarding payment, return, feedback, company background, warranty, shipping, contact us. Remove information regarding marketplace platform such as eBay, Amazon, etc. Remove information regarding health issue warning such as cancer, reproductive harm, birth defects. In the opening paragraph, always use the {title} itself without any word before it except "The". Always incorporate the phrase 'ride-on' seamlessly into the description. Utilize vivid language, unique phrasing, synonyms, and alternative sentence structures with adventurous and playful tone to consistently create a one-of-a-kind product description. Keep the terms "car" and "truck" intact, without substituting them with synonyms. Use imperial metrics for all measurement units and convert their values where necessary. Avoid to put note in the description. Present the output in no CSS Style HTML format with a well-structured parahgraph that constantly including all key features and specifications in bullet points. Your ultimate goal is to create an engaging and SEO-friendly product description.
             """
 
             # human_template = """
@@ -276,7 +276,7 @@ class TransformEbay:
     #     return result
 
     def run(self):
-        file_name = '20230928_091-095_Desc'
+        file_name = '20231004_006-010_Under106'
         df = pd.read_csv(
             f'original/{file_name}_Original.csv'
             # 'cek_Original.csv'
