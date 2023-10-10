@@ -16,9 +16,9 @@ proxy = os.getenv('PROXY')
 @dataclass
 class EbayScraper:
     proxies: List = field(default_factory=lambda: ['154.12.112.163:8800','192.126.196.137:8800','154.12.112.208:8800',
-                                                   '192.126.194.95:8800','154.12.113.169:8800','192.126.196.93:8800',
-                                                   '154.12.113.202:8800','192.126.194.135:8800','154.12.113.32:8800',
-                                                   '154.12.113.91:8800']
+                                                   '192.126.194.95:8800','154.38.156.14:8800','192.126.196.93:8800',
+                                                   '154.12.113.202:8800','192.126.194.135:8800','154.38.156.187:8800',
+                                                   '154.38.156.188:8800']
                           )
 
     proxy_index: int = 0
@@ -50,7 +50,7 @@ class EbayScraper:
             self.proxy_index += 1
             timeout = httpx.Timeout(10.0, read=20.0)
             try:
-                with httpx.Client(headers=headers, proxies=proxies, timeout=timeout) as client:
+                with httpx.Client(headers=headers, proxies=proxies, timeout=timeout, follow_redirects=True) as client:
                 # with httpx.Client(headers=headers) as client:
                     response = client.get(url)
                 retries = 0
@@ -89,7 +89,7 @@ class EbayScraper:
 
     def first_format(self, tree):
         print('first_format')
-        print(tree.css_first('title').text())
+        # print(tree.css_first('title').text())
         try:
             feedbacks = int(re.search(r'\((\d+)\)', tree.css_first('h2.fdbk-detail-list__title > span.SECONDARY').text().replace(',', '')).group(1))
         except Exception as e:
@@ -182,7 +182,7 @@ class EbayScraper:
                                         variant_price = float(self.get_price(tree, option_value)['price'])
                                         if variant_price > 100.00:
                                             variant_price_add = variant_price + 200.00
-                                            self.product_cat = 'B118'
+                                            self.product_cat = 'B135'
                                         else:
                                             variant_price_add = round(variant_price * 1.75, 2)
                                             self.product_cat = 'bprts'
@@ -216,7 +216,7 @@ class EbayScraper:
                                                     f'div.ux-image-carousel.img-transition-medium > div[data-idx="0"]').css_first(
                                                     'img').attributes.get('data-src')
                                     elif data == 'Tags':
-                                        product[data] = 'B118'
+                                        product[data] = 'B135'
                                     elif data == 'Published':
                                         product[data] = True
                                     # elif data == 'Option1 Name':
@@ -371,7 +371,7 @@ class EbayScraper:
                                         variant_price = float(self.get_price(tree, option_value)['price'])
                                         if variant_price > 100.00:
                                             variant_price_add = variant_price + 200.00
-                                            self.product_cat = 'B118'
+                                            self.product_cat = 'B135'
                                         else:
                                             variant_price_add = round(variant_price * 1.75, 2)
                                             self.product_cat = 'bprts'
@@ -486,7 +486,7 @@ class EbayScraper:
                                         1))
                                     if variant_price > 100.00:
                                         product[data] = variant_price + 200.00
-                                        self.product_cat = 'B118'
+                                        self.product_cat = 'B135'
                                     else:
                                         product[data] = round(variant_price * 1.75, 2)
                                         self.product_cat = 'bprts'
@@ -508,7 +508,7 @@ class EbayScraper:
                                         product[data] = picture_panel.css_first(
                                             'div.ux-image-carousel-item.active.image').css_first('img').attributes.get('src')
                                 elif data == 'Tags':
-                                    product[data] = 'B118'
+                                    product[data] = 'B135'
                                 elif data == 'Published':
                                     product[data] = True
                                 elif data == 'Option1 Name':
@@ -650,7 +650,7 @@ class EbayScraper:
                                         1))
                                     if variant_price > 100.00:
                                         variant_price_add = variant_price + 200.00
-                                        self.product_cat = 'B118'
+                                        self.product_cat = 'B135'
                                     else:
                                         variant_price_add = round(variant_price * 1.75, 2)
                                         self.product_cat = 'bprts'
@@ -726,10 +726,10 @@ class EbayScraper:
                             collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/20231005_026-030_Under106_Original.csv'):
-                collected_df.to_csv('original/20231005_026-030_Under106_Original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/20231010_111-115_Under106_Original.csv'):
+                collected_df.to_csv('original/20231010_111-115_Under106_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/20231005_026-030_Under106_Original.csv', index=False)
+                collected_df.to_csv('original/20231010_111-115_Under106_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -1185,10 +1185,10 @@ class EbayScraper:
                         collected_df = pd.concat([collected_df, product_df.copy()], ignore_index=True)
 
             # save to csv file
-            if os.path.exists('original/20231005_026-030_Under106_Original.csv'):
-                collected_df.to_csv('original/20231005_026-030_Under106_Original.csv', index=False, mode='a', header=False)
+            if os.path.exists('original/20231010_111-115_Under106_Original.csv'):
+                collected_df.to_csv('original/20231010_111-115_Under106_Original.csv', index=False, mode='a', header=False)
             else:
-                collected_df.to_csv('original/20231005_026-030_Under106_Original.csv', index=False)
+                collected_df.to_csv('original/20231010_111-115_Under106_Original.csv', index=False)
             print('Product Scraped')
         else:
             pass
@@ -1198,16 +1198,22 @@ class EbayScraper:
         print(f'Getting product data of {response.url}...')
         retries = 0
         while retries < 3:
-            tree = HTMLParser(response.text)
-            if tree.css_first('div.tabs__content'):
-                flag = tree.css_first('div.product-info.no-product-picture')
-                if flag:
-                    self.second_format(tree)
-                    break
+            try:
+                tree = HTMLParser(response.text)
+                if tree.css_first('div.tabs__content'):
+                    flag = tree.css_first('div.product-info.no-product-picture')
+                    if flag:
+                        self.second_format(tree)
+                        break
+                    else:
+                        self.first_format(tree)
+                        break
                 else:
-                    self.first_format(tree)
-                    break
-            else:
+                    response = self.fetch(response.url)
+                    retries += 1
+                    continue
+            except Exception as e:
+                print(f'fetch retry due to {e}')
                 response = self.fetch(response.url)
                 retries += 1
                 continue
@@ -1338,21 +1344,21 @@ class EbayScraper:
         return body
 
     def get_product_link(self):
-        pg = 26
+        pg = 111
         product_links = []
         retries = 0
-        while pg < 31 and retries < 3:
+        while pg < 116 and retries < 3:
             try:
+                products = []
                 # url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_pgn={str(pg)}&_sop=16&&_fcid=1'
                 url = f'https://www.ebay.com/b/Battery-Operated-Ride-On-Toys-Accessories/145944/bn_1928511?LH_BIN=1&LH_ItemCondition=1000&mag=1&rt=nc&_fcid=1&_pgn={str(pg)}&_sop=16&_udhi=106'
                 html = self.fetch(url)
                 tree = HTMLParser(html.text)
-                # print(tree.html)
                 if tree.css_first('h2.srp-controls__count-heading'):
                     # products = tree.css('ul.b-list__items_nofooter.srp-results.srp-grid > li')
                     products = tree.css('ul.b-list__items_nofooter > li')
                     if len(products) == 0:
-                        products = tree.css('ul.brm__aspect-list > li')
+                        products = tree.css('ul.brwrvr__item-results.brwrvr__item-results--gallery > li.brwrvr__item-card')
                     print(len(products))
                     for product in products:
                         product_link = product.css_first('a').attributes.get('href')
@@ -1408,7 +1414,7 @@ class EbayScraper:
 
     def run(self):
         urls = self.get_product_link()
-        # urls = ['https://www.ebay.com/itm/20230930_106-110']
+        # urls = ['https://www.ebay.com/itm/20230930_111-115']
         responses = [self.fetch(url) for url in urls]
         datas = [self.get_data(response) for response in responses]
 

@@ -28,11 +28,31 @@ class GoogleContentAPI:
         result = g_service.products().list(merchantId=self.merchantID).execute()
         return result
 
+    def get_product(self, g_service, productId):
+        result = g_service.products().get(merchantId=self.merchantID, productId=productId).execute()
+        return result
+
+    def get_datafeedstatus(self, g_service):
+        result = g_service.datafeedstatuses().list(merchantId=self.merchantID, maxResults=10).execute()
+        return result
+
+    def get_datafeeds(self, g_service, datafeedId):
+        result = g_service.datafeeds().get(merchantId=self.merchantID, datafeedId=datafeedId).execute()
+        return result
+
+    def list_datafeeds(self, g_service):
+        result = g_service.datafeeds().list(merchantId=self.merchantID).execute()
 
 if __name__ == '__main__':
     GCA = GoogleContentAPI(merchantID=os.getenv('MERCHANT_ID'))
     g_service = GCA.create_service(serviceName='content', version='v2.1')
-    response = GCA.get_products(g_service=g_service)
+    # response = GCA.get_products(g_service=g_service)
+    # response = GCA.get_datafeeds(g_service=g_service)
+    response = GCA.get_product(g_service=g_service, productId='online:en:US:shopify_US_8491785158887_47874778923239')
+    print(response)
+    # response = GCA.get_datafeeds(g_service=g_service, datafeedId='online:en:US:shopify_US_8491785158887_47874778923239')
+    # print(response)
+    response = GCA.list_datafeeds(g_service=g_service)
     print(response)
 
 
