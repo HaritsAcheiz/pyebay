@@ -24,7 +24,7 @@ def generate_filename(handle, id):
 
 if __name__ == '__main__':
     # read imported product data
-    imported_products = pd.read_csv('final_result/20231003_201-205_Desc_B111_QC.csv',
+    imported_products = pd.read_csv('final_result/20231004_002-005_Under106_B113_QC.csv',
                                     usecols=['Handle', 'Image Alt Text'],
                                     encoding='unicode_escape')
     imported_products.drop_duplicates(subset='Image Alt Text', inplace=True, ignore_index=True, keep='first')
@@ -34,8 +34,8 @@ if __name__ == '__main__':
     # get shopify file ID
     s = shopifyapi.ShopifyApp()
     client = s.create_session()
-    updated_at = '2023-10-10T00:00:00Z'
-    created_at = '2023-10-08T00:00:00Z'
+    updated_at = '2023-10-20T00:00:00Z'
+    created_at = '2023-10-18T00:00:00Z'
     hasNextPage = True
     after = ''
     retries = 0

@@ -622,13 +622,85 @@ class ShopifyApp:
             except Exception as e:
                 print(e)
 
+    def get_variants(self, client, sku):
+        print("Getting variant...")
+        query = '''
+                query getVariantsBySKU($query:String!){
+                    productVariants(first:250, query:$query) {
+                        edges {
+                            node {
+                                id
+                                }
+                            }
+                        }
+                    }
+                '''
+
+        variables = {'query': "sku:{}".format(sku)}
+
+        retries = 0
+        while retries < 3:
+            response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2023-07/graphql.json',
+                                   json={'query': query, 'variables': variables})
+            try:
+                result = response.json()
+                print(result)
+                break
+            except Exception as e:
+                print(e)
+                retries += 1
+                sleep(1)
+                continue
+
+        return result
+
+    def update_variants(self, client, sku, price, compareAtPrice):
+        print("Update variant price...")
+        mutation = '''
+                    mutation productVariantUpdate($input: ProductVariantInput!)
+                    {
+                        productVariantUpdate(input: $input) {
+                            productVariant {
+                                sku
+                            }
+                            userErrors {
+                                field
+                                message
+                            }
+                        }
+                    }
+                    '''
+
+        variables = {
+            'input': {
+                'sku': sku,
+                'price': price,
+                'compareAtPrice': compareAtPrice
+            }
+        }
+
+        print(variables)
+        while 1:
+            try:
+                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2023-07/graphql.json',
+                                       json={'query': mutation, 'variables': variables})
+                print(response)
+                print(response.json())
+                print('')
+                break
+            except Exception as e:
+                print(e)
+
 if __name__ == '__main__':
     s = ShopifyApp()
     client = s.create_session()
-    updated_at = '2023-09-24T00:00:00Z'
-    created_at = '2023-09-23T00:00:00Z'
-    file_data = s.get_file(client, created_at=created_at, updated_at=updated_at, after='')
-    print(file_data)
+    # s.get_variants(client, '294329484754-none-$0-none-$0-')
+    s.update_variants(client=client, sku='294329484754-none-$0-none-$0-', price='1.00', compareAtPrice='2.00')
+
+    # updated_at = '2023-09-24T00:00:00Z'
+    # created_at = '2023-09-23T00:00:00Z'
+    # file_data = s.get_file(client, created_at=created_at, updated_at=updated_at, after='')
+    # print(file_data)
 
     # print(file_data)
     # file_id = file_data['data']['files']['edges'][0]['node']['id']
